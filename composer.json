@@ -1,0 +1,15 @@
+{
+    "name": "Uploader Dash",
+    "description": "Uploader Dashboard",
+    "type": "project",
+    "license": "AGPL",
+    "authors": [
+        {
+            "name": "Tianhao Shi"
+        }
+    ],
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^5.4"
+    }
+}

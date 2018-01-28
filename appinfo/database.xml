@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<database>
+    <name>*dbname*</name>
+    <create>true</create>
+    <overwrite>false</overwrite>
+    <charset>utf8</charset>
+    <!-- Files Table -->
+    <table>
+        <name>*dbprefix*uploading_files</name>
+        <declaration>
+            <!-- File id -->
+            <field>
+                <name>id</name>
+                <type>integer</type>
+                <default>0</default>
+                <notnull>true</notnull>
+                    <autoincrement>1</autoincrement>
+                <length>4</length>
+            </field>
+            <!-- Uploader userid -->
+            <field>
+                <name>user_id</name>
+                <type>text</type>
+                <length>200</length>
+                <default></default>
+                <notnull>true</notnull>
+            </field>
+            <!-- File name -->
+            <field>
+                <name>filename</name>
+                <type>text</type>
+                <notnull>true</notnull>
+                <length>100</length>
+            </field>
+            <!-- File MD5 -->
+            <field>
+                <name>file_md5</name>
+                <type>text</type>
+                <notnull>true</notnull>
+                <length>100</length>
+            </field>
+            <!-- File size -->
+            <field>
+                <name>file_size</name>
+                <default>0</default>
+                <type>integer</type>
+                <notnull>true</notnull>
+                <length>32</length>
+            </field>
+            <!-- total chunk numbers -->
+            <field>
+                <name>total_chunk</name>
+                <type>integer</type>
+                <default>0</default>
+                <notnull>true</notnull>
+                <length>4</length>
+            </field>
+            <field>
+                <name>relative_path</name>
+                <type>clob</type>
+                <notnull>true</notnull>
+            </field>
+            <!-- File uploading completed -->
+            <field>
+                <name>completed</name>
+                <type>boolean</type>
+                <default>false</default>
+                <notnull>true</notnull>
+            </field>
+            <index>
+                <name>file_id_index</name>
+                <field>
+                    <name>id</name>
+                    <sorting>ascending</sorting>
+                </field>
+            </index>
+        </declaration>
+    </table>
+    <!-- Chunks Table -->
+    <table>
+        <name>*dbprefix*uploading_chunks</name>
+        <declaration>
+            <!-- chunk id -->
+            <field>
+                <name>id</name>
+                <type>integer</type>
+                <default>0</default>
+                <notnull>true</notnull>
+                    <autoincrement>1</autoincrement>
+                <length>4</length>
+            </field>
+            <!--foreign key: uploading_files.id-->
+            <field>
+                <name>file_id</name>
+                <type>integer</type>
+                <notnull>true</notnull>
+                <length>6</length>
+            </field>
+            <!-- Chunk MD5 -->
+            <field>
+                <name>chunk_md5</name>
+                <type>text</type>
+                <notnull>true</notnull>
+                <length>100</length>
+            </field>
+            <index>
+                <name>chunk_id_index</name>
+                <field>
+                    <name>id</name>
+                    <sorting>ascending</sorting>
+                </field>
+            </index>
+        </declaration>
+
+    </table>
+</database>
