@@ -32,20 +32,22 @@ export const readChunks = (file, onChunkLoaded) => {
     const totalChunk = getFileTotalChunk(file);
     
     let loadedChunk = null;
-    let loadedChunkIndex = 0;
+    let loadChunkIndex = 0;
     let allChunkLoaded = totalChunk == 0;
     const fileReader = new FileReader();
     return new Promise((resolve, reject) => {
         const readNextChunk = () => {
             if(!allChunkLoaded) {
-                loadedChunk = readChunk(fileReader, file, loadedChunkIndex++, FILE_CHUNK_SIZE);
-                allChunkLoaded = loadedChunkIndex >= totalChunk;
+                loadedChunk = readChunk(fileReader, file, loadChunkIndex, FILE_CHUNK_SIZE);
             } else {
                 resolve()
             }
         }
         fileReader.onload = (event) => {
             // calculat chunk MD5
+            console.log('file onload')
+            loadChunkIndex++;
+            allChunkLoaded = loadChunkIndex >= totalChunk;
             const buffer = event.target.result;
             const spark = new SparkMD5.ArrayBuffer();
             spark.append(buffer);
@@ -53,10 +55,9 @@ export const readChunks = (file, onChunkLoaded) => {
     
             onChunkLoaded({
                 data: loadedChunk,
-                index: loadedChunkIndex,
+                index: loadChunkIndex,
                 md5
             })
-    
             readNextChunk();
         }
     
@@ -66,36 +67,46 @@ export const readChunks = (file, onChunkLoaded) => {
 
 
 export const convertToTrees = (files) => {
-    const dump = new TreeNode('root');
+    let dump = new TreeNode('root');
 
     for (var i = 0; i < files.length; i++) {
         const file = files[i];
         const path = file.webkitRelativePath;
         let pathList = path.split('/');
         let parentNode = dump;
-        let node = pathList.shift();
-        let level = 1;
-        while(node != undefined) {
+        let nodeName = pathList.shift();
+        if(nodeName == '') nodeName = file.name;
+        while(nodeName != undefined) {
             const nextNode = pathList.shift();
             if(nextNode == undefined) {
                 const fileNode = new FileNode(file);
-                parentNode.addChild(node, fileNode);
+                parentNode.addChild(nodeName, fileNode);
             } else {
-                if(parentNode.hasChild(node)) {
-                    parentNode = parentNode.getChild(node);
+                if(parentNode.hasChild(nodeName)) {
+                    parentNode = parentNode.getChild(nodeName);
                 } else {
-                    // only open first level folder as default
-                    const folderNode = new FolderNode(node, level>1);
-                    parentNode.addChild(node, folderNode);
+                    const folderNode = new FolderNode(nodeName);
+                    parentNode.addChild(nodeName, folderNode);
                     parentNode = folderNode;
                 }
             }
-            node = nextNode;
-            level++;
+            nodeName = nextNode;
         }
     }
+    return dump;
+}
 
-    return  Object.keys(dump.children).map(key => {
-        return dump.children[key];
-    });
+export const getFileSize = (file) => {
+    let bytes = file.size;
+    const thresh = 1024;
+    if(Math.abs(bytes) < thresh) {
+        return bytes + ' B';
+    }
+    const units = ['kB','MB','GB','TB','PB','EB','ZB','YB'];
+    let u = -1;
+    do {
+        bytes /= thresh;
+        ++u;
+    } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+    return bytes.toFixed(1)+' '+units[u];
 }

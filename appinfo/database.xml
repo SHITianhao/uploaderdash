@@ -96,6 +96,13 @@
                 <notnull>true</notnull>
                 <length>6</length>
             </field>
+            <!-- Chunk Index -->
+            <field>
+                <name>chunk_index</name>
+                <type>integer</type>
+                <notnull>true</notnull>
+                <length>6</length>
+            </field>
             <!-- Chunk MD5 -->
             <field>
                 <name>chunk_md5</name>

@@ -4,6 +4,8 @@ class IFileNode extends TreeNode {
     constructor(name) {
         super(name);
         this.inited = false;
+        this.uploaded = false;
+        this.merged = false;
         this._onUpdate = null;
     }
 

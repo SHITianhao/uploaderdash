@@ -13,12 +13,12 @@ class FileMapper extends Mapper {
     }
 
     public function find($id, $userId) {
-        $sql = 'SELECT * FROM *PREFIX*'+self::$db_name+' WHERE id = ? AND user_id = ?';
+        $sql = 'SELECT * FROM `*PREFIX*'.self::$db_name.'` WHERE id = ? AND user_id = ?';
         return $this->findEntity($sql, [$id, $userId]);
     }
 
     public function findAll($userId) {
-        $sql = 'SELECT * FROM *PREFIX*'+self::$db_name+' WHERE user_id = ?';
+        $sql = 'SELECT * FROM `*PREFIX*'.self::$db_name.'` WHERE user_id = ?';
         return $this->findEntities($sql, [$userId]);
     }
 

@@ -24,23 +24,29 @@ class UploadButton extends Component {
         this.fileUploader.multiple = true;
     }
 
-    uploadFolderOnClick = () => {
+    uploadFolderOnClick = (event) => {
         this.setState({
             uploadFolder: true,
+            menuOpen: false
+        }, () => {
+            this.folderUploader.click();
         });
-        this.folderUploader.click();
+        this.props.onClick(event);
     }
 
     
-    uploadFileOnClick = () => {
+    uploadFileOnClick = (event) => {
         this.setState({
             uploadFolder: false,
             menuOpen: false
+        }, () => {
+            this.fileUploader.click();
         });
-        this.fileUploader.click();
+        this.props.onClick(event);
     }
 
-    handleFile = () => {
+    handleFile = (event) => {
+        console.log(event)
         this.setState({ menuOpen: false })
         const loader = this.state.uploadFolder? this.folderUploader: this.fileUploader;
         const files = Array.from(loader.files);

@@ -14,6 +14,8 @@ use OCA\UploaderDash\Db\Entity\ChunkEntity;
 
 use OCA\UploaderDash\Storage\FileStorage;
 
+use OCA\UploaderDash\Exception\MD5NotMatchException;
+
 class UploadApiController extends ApiController {
 
     private $fileMapper;
@@ -52,8 +54,8 @@ class UploadApiController extends ApiController {
             $file->setRelativePath($fileInfo['relativePath']);
             $file->setFileSize($fileInfo['fileSize']);
             $file->setCompleted(false);
-            // $data = $this->fileMapper->insert($file);
-            array_push($resp, $file);
+            $data = $this->fileMapper->insert($file);
+            array_push($resp, $data);
         }
         
         return new DataResponse($resp);
@@ -63,16 +65,40 @@ class UploadApiController extends ApiController {
      * @NoCSRFRequired
      * 
      * @param int $fileId
-     * @param string $md5
+     * @param string $fileMD5
+     * @param string $chunkMD5
+     * @param int $chunkIndex
      */
-	public function createChunk($fileId, $md5) {
+	public function createChunk($fileId, $fileMD5, $chunkMD5, $chunkIndex) {
         $chunk = new ChunkEntity();
         $chunk->setFileId($fileId);
-        $chunk->setChunkMd5($md5);
+        $chunk->setChunkMd5($chunkMD5);
+        $chunk->setChunkIndex($chunkIndex);
 
+        // TODO: use request to get file
         $file = $_FILES;
-        $this->storage->saveTempChunk($md5, $file['data'], 0);
-        return new DataResponse(array('file' => $file['data'], "chunk" => $chunk));
+        try {
+            $this->storage->saveTempChunk($fileMD5, $file['data'], $chunkMD5, $chunkIndex);
+        } catch (MD5NotMatchException $e) {
+
+        }
+        
+        return new DataResponse($this->chunkMapper->insert($chunk));
+    }
+
+    /**
+     * @NoCSRFRequired
+     * 
+     * @param int $fileId
+     */
+	public function mergeChunks($fileId) {
+        $file = $this->fileMapper->find($fileId, $this->userId);
+        $fileMD5 = $file->getFileMd5();
+        $totalChunk = $file->getTotalChunk();
+        $targetPath = $file->getRelativePath();
+        $resp = $this->storage->mergeChunks($fileMD5, $totalChunk, $targetPath);
+        $this->storage-> cleanChunks($fileMD5);
+        return new DataResponse($resp);
     }
 
 }

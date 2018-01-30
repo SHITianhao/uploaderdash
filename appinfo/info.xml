@@ -5,7 +5,7 @@
     <name>Uploader Dash</name>
     <summary>Uploader Dashboard</summary>
     <description><![CDATA[Control multiple upload files from the dashboard]]></description>
-    <version>0.0.8-dev</version>
+    <version>0.0.9-dev</version>
     <licence>agpl</licence>
     <author mail="shi.tianhao.sth@gmail.com" homepage="https://www.tshi.tech">Tianhao Shi</author>
     <namespace>UploaderDash</namespace>

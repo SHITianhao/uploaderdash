@@ -38,12 +38,10 @@ module.exports = {
     resolve: {
         extensions: [".js", ".json"],
         alias: {
-            // '@Actions': path.resolve(__dirname, 'src/actions/'),
             '@Components': path.resolve(__dirname, 'components/'),
-            // '@Reducers': path.resolve(__dirname, 'src/reducers/'),
             '@Constants': path.resolve(__dirname, 'constants'),
             '@Services': path.resolve(__dirname, 'services'),
-            // '@Pages': path.resolve(__dirname, 'src/pages')
+            '@Icons': path.resolve(__dirname, 'icons'),
         }
     },
 

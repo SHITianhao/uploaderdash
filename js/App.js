@@ -1,7 +1,9 @@
 import React, {Component} from 'react';
-import axios from 'axios';
 import UploadButton from '@Components/UploadButton';
-import FileTree from '@Components/FileTree';
+import FileTree from '@Components/FileTree/Tree';
+import Loading from '@Components/Loading';
+
+import TreeNode from '@Services/TreeNode';
 
 import { convertToTrees, getFileMD5, getFileTotalChunk } from '@Services/Files'
 
@@ -10,20 +12,24 @@ class App extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            trees: []
+            dumpRoot: new TreeNode('root'),
+            loading: false
         }
     }
 
+    updateTree = (newNode) => {
+        const dumpRoot = this.state.dumpRoot;
+        dumpRoot.addChild(newNode.name, newNode);
+        this.setState({
+            dumpRoot
+        })
+    }
+
     sendChunks = () => {
-        this.state.trees.map((root, index) => {
-            root.setOnUpdate(newRoot => {
-                const oldTress = this.state.trees;
-                oldTress[index] = newRoot;
-                this.setState({
-                    trees: oldTress
-                })
-            })
-            .sendChunks(OC.generateUrl('/apps/uploaderdash/chunks'))
+        Object.keys(this.state.dumpRoot.children).map(key => {
+            const root = this.state.dumpRoot.getChild(key);
+            root.setOnUpdate(this.updateTree)
+            .sendChunks(OC.generateUrl('/apps/uploaderdash'))
             .then(() => {
                 console.log('done')
             })
@@ -34,15 +40,9 @@ class App extends Component {
     }
 
     sendUploadFileRequest = () => {
-        this.state.trees.map((root, index) => {
-            console.log(root);
-            root.setOnUpdate(newRoot => {
-                const oldTress = this.state.trees;
-                oldTress[index] = newRoot;
-                this.setState({
-                    trees: oldTress
-                })
-            })
+        Object.keys(this.state.dumpRoot.children).map(key => {
+            const root = this.state.dumpRoot.getChild(key);
+            root.setOnUpdate(this.updateTree)
             .sendFileInitRequest(OC.generateUrl('/apps/uploaderdash/files'))
             .then(() => {
                 console.log('done')
@@ -55,12 +55,15 @@ class App extends Component {
     }
 
     onFiles = (files) => {
-        console.log(files);
-        console.log(files.length)
-        const trees = convertToTrees(files);
-        console.log(trees);
         this.setState({
-            trees
+            loading: false
+        })
+        // console.log(files);
+        console.log(files.length)
+        const dumpRoot = convertToTrees(files);
+        console.log(dumpRoot);
+        this.setState({
+            dumpRoot
         })
     }
 
@@ -68,19 +71,24 @@ class App extends Component {
         this.sendUploadFileRequest();
     }
 
+    onUploadBtnClick = () => {
+        this.setState({
+            loading: true
+        })
+    }
+
     render = () => (
         <div className="app-content">
             <div className="app-row">
-                <UploadButton onFiles={this.onFiles}/>
+                <UploadButton onFiles={this.onFiles} onClick={this.onUploadBtnClick}/>
                 <a className="button" onClick={this.onSubmitClick} >
                     发送请求
                 </a>
             </div>
             <div className="app-row flex-container">
-                {this.state.trees.map(tree => (
-                    <FileTree rootFolder={tree}/>
-                ))}
+                <FileTree root={this.state.dumpRoot} />
             </div>
+            <Loading text={'加载中'} show={this.state.loading} />
         </div>
     )
 }

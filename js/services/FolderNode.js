@@ -5,17 +5,13 @@ import axios from 'axios';
 
 
 class FolderNode extends IFileNode {
-    constructor(name, collapsed=false) {
+    constructor(name) {
         super(name);
-        this.collapsed = collapsed;
     }
 
-    collapse = () => {
-        this.collapsed = true;
-    }
-
-    open = () => {
-        this.collapsed = false;
+    childUpdate = (newChild) => {
+        this.addChild(newChild.name, newChild);
+        if(typeof this._onUpdate === 'function') this._onUpdate(this);
     }
 
     sendFileInitRequest = (url) => {
@@ -59,13 +55,14 @@ class FolderNode extends IFileNode {
         })
     }
 
-    sendChunks = (url) => {
+    sendChunks = (baseUrl) => {
+        
         const filenames = Object.keys(this.children);
         const promises = filenames.filter(this.filterFileNode)
         .map(filename => {
             return this.children[filename];
         }).reduce((list, file) => {
-            const promise = file.sendChunks(url);
+            const promise = file.setOnUpdate(this.childUpdate).sendChunks(baseUrl);
             return list.concat([promise]);
         }, [])
 

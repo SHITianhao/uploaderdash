@@ -6,7 +6,82 @@
     margin: 8px 0;
 }
 
+.file-icon {
+    height: 32px;
+    width: 32px;
+    display: inline-block;
+}
+
 .flex-container {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
+}
+
+.center-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transform: -webkit-translate(-50%, -50%);
+    transform: -moz-translate(-50%, -50%);
+    transform: -ms-translate(-50%, -50%);
+    color:darkred;
+}
+
+.center-loading-text {
+    margin-top: 32px;
+    color: #fff;
+    font-size: medium;
+    text-align: center;
+}
+
+.loading-mask {
+    height: 100%;
+    width: 100%;
+    background-color: #000;
+    opacity: 0.4;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 9999;
+    position: absolute;
+}
+
+.app-progress {
+    padding-left: 6px;
+    display: flex;
+    align-items: center;
+    .progress-text {
+        padding-left: 6px;
+        color: white;
+        position: absolute;
+        line-height: 32px;
+    }
+    progress {
+        /* Reset the default appearance */
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-color: white;
+    }
+    
+    progress[value] {
+        /* Reset the default appearance */
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+
+        border: none;
+      
+        width: 250px;
+        height: 32px;
+        padding: 4px 0;
+    }
+
+    progress[value]::-moz-progress-bar {
+        background-color: #0082C9;
+        border-radius: 2px;
+    }
+
 }

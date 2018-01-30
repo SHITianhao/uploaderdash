@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "/";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 12);
+/******/ 	return __webpack_require__(__webpack_require__.s = 14);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -70,8 +70,8 @@
 "use strict";
 
 
-var bind = __webpack_require__(7);
-var isBuffer = __webpack_require__(16);
+var bind = __webpack_require__(6);
+var isBuffer = __webpack_require__(18);
 
 /*global toString:true*/
 
@@ -383,7 +383,7 @@ module.exports = React;
 /* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(15);
+module.exports = __webpack_require__(17);
 
 /***/ }),
 /* 3 */
@@ -393,7 +393,7 @@ module.exports = __webpack_require__(15);
 /* WEBPACK VAR INJECTION */(function(process) {
 
 var utils = __webpack_require__(0);
-var normalizeHeaderName = __webpack_require__(19);
+var normalizeHeaderName = __webpack_require__(21);
 
 var DEFAULT_CONTENT_TYPE = {
   'Content-Type': 'application/x-www-form-urlencoded'
@@ -409,10 +409,10 @@ function getDefaultAdapter() {
   var adapter;
   if (typeof XMLHttpRequest !== 'undefined') {
     // For browsers use XHR adapter
-    adapter = __webpack_require__(8);
+    adapter = __webpack_require__(7);
   } else if (typeof process !== 'undefined') {
     // For node use HTTP adapter
-    adapter = __webpack_require__(8);
+    adapter = __webpack_require__(7);
   }
   return adapter;
 }
@@ -483,7 +483,7 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 
 module.exports = defaults;
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(18)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(20)))
 
 /***/ }),
 /* 4 */
@@ -495,23 +495,23 @@ module.exports = defaults;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.convertToTrees = exports.readChunks = exports.getFileTotalChunk = exports.getFileMD5 = undefined;
+exports.getFileSize = exports.convertToTrees = exports.readChunks = exports.getFileTotalChunk = exports.getFileMD5 = undefined;
 
-var _Constants = __webpack_require__(35);
+var _Constants = __webpack_require__(37);
 
-var _sparkMd = __webpack_require__(36);
+var _sparkMd = __webpack_require__(38);
 
 var _sparkMd2 = _interopRequireDefault(_sparkMd);
 
-var _TreeNode = __webpack_require__(5);
+var _TreeNode = __webpack_require__(11);
 
 var _TreeNode2 = _interopRequireDefault(_TreeNode);
 
-var _FileNode = __webpack_require__(6);
+var _FileNode = __webpack_require__(5);
 
 var _FileNode2 = _interopRequireDefault(_FileNode);
 
-var _FolderNode = __webpack_require__(37);
+var _FolderNode = __webpack_require__(39);
 
 var _FolderNode2 = _interopRequireDefault(_FolderNode);
 
@@ -545,20 +545,22 @@ var readChunks = exports.readChunks = function readChunks(file, onChunkLoaded) {
     var totalChunk = getFileTotalChunk(file);
 
     var loadedChunk = null;
-    var loadedChunkIndex = 0;
+    var loadChunkIndex = 0;
     var allChunkLoaded = totalChunk == 0;
     var fileReader = new FileReader();
     return new Promise(function (resolve, reject) {
         var readNextChunk = function readNextChunk() {
             if (!allChunkLoaded) {
-                loadedChunk = readChunk(fileReader, file, loadedChunkIndex++, _Constants.FILE_CHUNK_SIZE);
-                allChunkLoaded = loadedChunkIndex >= totalChunk;
+                loadedChunk = readChunk(fileReader, file, loadChunkIndex, _Constants.FILE_CHUNK_SIZE);
             } else {
                 resolve();
             }
         };
         fileReader.onload = function (event) {
             // calculat chunk MD5
+            console.log('file onload');
+            loadChunkIndex++;
+            allChunkLoaded = loadChunkIndex >= totalChunk;
             var buffer = event.target.result;
             var spark = new _sparkMd2.default.ArrayBuffer();
             spark.append(buffer);
@@ -566,10 +568,9 @@ var readChunks = exports.readChunks = function readChunks(file, onChunkLoaded) {
 
             onChunkLoaded({
                 data: loadedChunk,
-                index: loadedChunkIndex,
+                index: loadChunkIndex,
                 md5: md5
             });
-
             readNextChunk();
         };
 
@@ -585,31 +586,41 @@ var convertToTrees = exports.convertToTrees = function convertToTrees(files) {
         var path = file.webkitRelativePath;
         var pathList = path.split('/');
         var parentNode = dump;
-        var node = pathList.shift();
-        var level = 1;
-        while (node != undefined) {
+        var nodeName = pathList.shift();
+        if (nodeName == '') nodeName = file.name;
+        while (nodeName != undefined) {
             var nextNode = pathList.shift();
             if (nextNode == undefined) {
                 var fileNode = new _FileNode2.default(file);
-                parentNode.addChild(node, fileNode);
+                parentNode.addChild(nodeName, fileNode);
             } else {
-                if (parentNode.hasChild(node)) {
-                    parentNode = parentNode.getChild(node);
+                if (parentNode.hasChild(nodeName)) {
+                    parentNode = parentNode.getChild(nodeName);
                 } else {
-                    // only open first level folder as default
-                    var folderNode = new _FolderNode2.default(node, level > 1);
-                    parentNode.addChild(node, folderNode);
+                    var folderNode = new _FolderNode2.default(nodeName);
+                    parentNode.addChild(nodeName, folderNode);
                     parentNode = folderNode;
                 }
             }
-            node = nextNode;
-            level++;
+            nodeName = nextNode;
         }
     }
+    return dump;
+};
 
-    return Object.keys(dump.children).map(function (key) {
-        return dump.children[key];
-    });
+var getFileSize = exports.getFileSize = function getFileSize(file) {
+    var bytes = file.size;
+    var thresh = 1024;
+    if (Math.abs(bytes) < thresh) {
+        return bytes + ' B';
+    }
+    var units = ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    var u = -1;
+    do {
+        bytes /= thresh;
+        ++u;
+    } while (Math.abs(bytes) >= thresh && u < units.length - 1);
+    return bytes.toFixed(1) + ' ' + units[u];
 };
 
 /***/ }),
@@ -623,68 +634,9 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var TreeNode = function TreeNode(name) {
-    _classCallCheck(this, TreeNode);
-
-    _initialiseProps.call(this);
-
-    this.name = name;
-    this.children = {};
-}
-
-/**
- * Add Child node
- * 
- * @param string name
- * @param TreeNode node
- */
-;
-
-var _initialiseProps = function _initialiseProps() {
-    var _this = this;
-
-    this.addChild = function (name, node) {
-        var newChild = {};
-        // child: {name: node}
-        newChild[name] = node;
-        _this.children = Object.assign(_this.children, newChild);
-    };
-
-    this.removeChild = function (name) {
-        delete _this.children[name];
-    };
-
-    this.hasChild = function (name) {
-        return _this.children[name] !== undefined && _this.children[name] !== null;
-    };
-
-    this.getChild = function (name) {
-        return _this.children[name];
-    };
-
-    this.isLeaf = function () {
-        return Object.keys(_this.children).length === 0;
-    };
-};
-
-exports.default = TreeNode;
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _IFileNode2 = __webpack_require__(44);
+var _IFileNode2 = __webpack_require__(12);
 
 var _IFileNode3 = _interopRequireDefault(_IFileNode2);
 
@@ -710,7 +662,23 @@ var FileNode = function (_IFileNode) {
 
         var _this = _possibleConstructorReturn(this, (FileNode.__proto__ || Object.getPrototypeOf(FileNode)).call(this, file.name));
 
-        _this.sendChunks = function (url) {
+        _this.sendFileInitRequest = function (url) {
+            return _axios2.default.post(url, { files: [_this.fileInfo] }).then(function (resp) {
+                var data = resp.data[0];
+                var id = data.id;
+
+                _this.fileId = id;
+                _this.inited = true;
+                // all sub files inited
+                if (typeof _this._onUpdate === 'function') _this._onUpdate(_this);
+                return _this;
+            });
+        };
+
+        _this.sendChunks = function (baseUrl) {
+            var fileMD5 = (0, _Files.getFileMD5)(_this.file);
+            var chunkUrl = baseUrl + '/chunks';
+            var mergeUrl = baseUrl + '/merge';
             return (0, _Files.readChunks)(_this.file, function (_ref, allChunkLoaded) {
                 var data = _ref.data,
                     index = _ref.index,
@@ -719,22 +687,36 @@ var FileNode = function (_IFileNode) {
                 var form = new FormData();
                 form.append('data', data);
                 form.append('fileId', _this.fileId);
+                form.append('fileMD5', fileMD5);
                 form.append('chunkIndex', index);
-                form.append('md5', md5);
-                _axios2.default.post('' + url, form, {
+                form.append('chunkMD5', md5);
+                _axios2.default.post('' + chunkUrl, form, {
                     headers: {
                         'Content-Type': 'multipart/form-data'
                     }
                 }).then(function (resp) {
+                    _this.uploadedChunks++;
+                    if (typeof _this._onUpdate === 'function') _this._onUpdate(_this);
                     console.log(resp.data);
                 });
             }).then(function () {
-                console.log(_this.name + ' uploading done');
+                console.log(_this.name + ' chunks uploading done');
+                _this.uploaded = true;
+                if (typeof _this._onUpdate === 'function') _this._onUpdate(_this);
+                var mergeData = {
+                    fileId: _this.fileId
+                };
+                return _axios2.default.post('' + mergeUrl, mergeData);
+            }).then(function (resp) {
+                console.log(resp.data);
+                _this.merged = true;
+                if (typeof _this._onUpdate === 'function') _this._onUpdate(_this);
             });
         };
 
         _this.file = file;
         _this.fileId = null;
+        _this.uploadedChunks = 0;
         return _this;
     }
 
@@ -749,15 +731,16 @@ var FileNode = function (_IFileNode) {
                 "fileSize": this.file.size
             };
         }
-
-        // sendFileInitRequest = (url) => {
-        //     return axios.post(url, data).then(resp => {
-        //         this.inited = true;
-        //         this.fileId = resp.data.id;
-        //         return this;
-        //     })
-        // }
-
+    }, {
+        key: 'totalChunk',
+        get: function get() {
+            return (0, _Files.getFileTotalChunk)(this.file);
+        }
+    }, {
+        key: 'uploadingPercentage',
+        get: function get() {
+            return (this.uploadedChunks / this.totalChunk * 100).toFixed(1);
+        }
     }]);
 
     return FileNode;
@@ -766,7 +749,7 @@ var FileNode = function (_IFileNode) {
 exports.default = FileNode;
 
 /***/ }),
-/* 7 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -784,19 +767,19 @@ module.exports = function bind(fn, thisArg) {
 
 
 /***/ }),
-/* 8 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 var utils = __webpack_require__(0);
-var settle = __webpack_require__(20);
-var buildURL = __webpack_require__(22);
-var parseHeaders = __webpack_require__(23);
-var isURLSameOrigin = __webpack_require__(24);
-var createError = __webpack_require__(9);
-var btoa = (typeof window !== 'undefined' && window.btoa && window.btoa.bind(window)) || __webpack_require__(25);
+var settle = __webpack_require__(22);
+var buildURL = __webpack_require__(24);
+var parseHeaders = __webpack_require__(25);
+var isURLSameOrigin = __webpack_require__(26);
+var createError = __webpack_require__(8);
+var btoa = (typeof window !== 'undefined' && window.btoa && window.btoa.bind(window)) || __webpack_require__(27);
 
 module.exports = function xhrAdapter(config) {
   return new Promise(function dispatchXhrRequest(resolve, reject) {
@@ -893,7 +876,7 @@ module.exports = function xhrAdapter(config) {
     // This is only done if running in a standard browser environment.
     // Specifically not if we're in a web worker, or react-native.
     if (utils.isStandardBrowserEnv()) {
-      var cookies = __webpack_require__(26);
+      var cookies = __webpack_require__(28);
 
       // Add xsrf header
       var xsrfValue = (config.withCredentials || isURLSameOrigin(config.url)) && config.xsrfCookieName ?
@@ -971,13 +954,13 @@ module.exports = function xhrAdapter(config) {
 
 
 /***/ }),
-/* 9 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var enhanceError = __webpack_require__(21);
+var enhanceError = __webpack_require__(23);
 
 /**
  * Create an Error with the specified message, config, error code, request and response.
@@ -996,7 +979,7 @@ module.exports = function createError(message, config, code, request, response) 
 
 
 /***/ }),
-/* 10 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1008,7 +991,7 @@ module.exports = function isCancel(value) {
 
 
 /***/ }),
-/* 11 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1034,7 +1017,168 @@ module.exports = Cancel;
 
 
 /***/ }),
+/* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var TreeNode = function TreeNode(name) {
+    _classCallCheck(this, TreeNode);
+
+    _initialiseProps.call(this);
+
+    this.name = name;
+    this.children = {};
+}
+
+/**
+ * Add Child node
+ * 
+ * @param string name
+ * @param TreeNode node
+ */
+;
+
+var _initialiseProps = function _initialiseProps() {
+    var _this = this;
+
+    this.addChild = function (name, node) {
+        var newChild = {};
+        // child: {name: node}
+        newChild[name] = node;
+        _this.children = Object.assign(_this.children, newChild);
+    };
+
+    this.removeChild = function (name) {
+        delete _this.children[name];
+    };
+
+    this.hasChild = function (name) {
+        return _this.children[name] !== undefined && _this.children[name] !== null;
+    };
+
+    this.getChild = function (name) {
+        return _this.children[name];
+    };
+
+    this.getChildrenNum = function () {
+        return Object.keys(_this.children).length;
+    };
+
+    this.isLeaf = function () {
+        return Object.keys(_this.children).length === 0;
+    };
+};
+
+exports.default = TreeNode;
+
+/***/ }),
 /* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _TreeNode2 = __webpack_require__(11);
+
+var _TreeNode3 = _interopRequireDefault(_TreeNode2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var IFileNode = function (_TreeNode) {
+    _inherits(IFileNode, _TreeNode);
+
+    function IFileNode(name) {
+        _classCallCheck(this, IFileNode);
+
+        var _this = _possibleConstructorReturn(this, (IFileNode.__proto__ || Object.getPrototypeOf(IFileNode)).call(this, name));
+
+        _this.isFolder = function () {
+            return _this.isLeaf();
+        };
+
+        _this.filterFileNode = function (key) {
+            var child = _this.children[key];
+            return child.isLeaf();
+        };
+
+        _this.filterFolderNode = function (key) {
+            var child = _this.children[key];
+            return !child.isLeaf();
+        };
+
+        _this.setOnUpdate = function (cb) {
+            if (typeof cb === 'function') _this._onUpdate = cb;
+            return _this;
+        };
+
+        _this.inited = false;
+        _this.uploaded = false;
+        _this.merged = false;
+        _this._onUpdate = null;
+        return _this;
+    }
+
+    return IFileNode;
+}(_TreeNode3.default);
+
+exports.default = IFileNode;
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+var _FileNode = __webpack_require__(41);
+
+var _FileNode2 = _interopRequireDefault(_FileNode);
+
+var _FolderNode = __webpack_require__(42);
+
+var _FolderNode2 = _interopRequireDefault(_FolderNode);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Node = function Node(_ref) {
+  var nodes = _ref.nodes,
+      level = _ref.level;
+  return Object.keys(nodes).map(function (key, index) {
+    var node = nodes[key];
+    return node.isLeaf() ? _react2.default.createElement(_FileNode2.default, { node: node, key: level + '-' + index }) : _react2.default.createElement(_FolderNode2.default, { node: node, level: level, key: level + '-' + index });
+  });
+};
+
+exports.default = Node;
+
+/***/ }),
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1044,11 +1188,11 @@ var _react = __webpack_require__(1);
 
 var _react2 = _interopRequireDefault(_react);
 
-var _reactDom = __webpack_require__(13);
+var _reactDom = __webpack_require__(15);
 
 var _reactDom2 = _interopRequireDefault(_reactDom);
 
-var _App = __webpack_require__(14);
+var _App = __webpack_require__(16);
 
 var _App2 = _interopRequireDefault(_App);
 
@@ -1061,13 +1205,13 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 })(OC, window, jQuery);
 
 /***/ }),
-/* 13 */
+/* 15 */
 /***/ (function(module, exports) {
 
 module.exports = ReactDOM;
 
 /***/ }),
-/* 14 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1081,17 +1225,21 @@ var _react = __webpack_require__(1);
 
 var _react2 = _interopRequireDefault(_react);
 
-var _axios = __webpack_require__(2);
-
-var _axios2 = _interopRequireDefault(_axios);
-
-var _UploadButton = __webpack_require__(34);
+var _UploadButton = __webpack_require__(36);
 
 var _UploadButton2 = _interopRequireDefault(_UploadButton);
 
-var _FileTree = __webpack_require__(38);
+var _Tree = __webpack_require__(40);
 
-var _FileTree2 = _interopRequireDefault(_FileTree);
+var _Tree2 = _interopRequireDefault(_Tree);
+
+var _Loading = __webpack_require__(66);
+
+var _Loading2 = _interopRequireDefault(_Loading);
+
+var _TreeNode = __webpack_require__(11);
+
+var _TreeNode2 = _interopRequireDefault(_TreeNode);
 
 var _Files = __webpack_require__(4);
 
@@ -1111,15 +1259,18 @@ var App = function (_Component) {
 
         var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this, props));
 
+        _this.updateTree = function (newNode) {
+            var dumpRoot = _this.state.dumpRoot;
+            dumpRoot.addChild(newNode.name, newNode);
+            _this.setState({
+                dumpRoot: dumpRoot
+            });
+        };
+
         _this.sendChunks = function () {
-            _this.state.trees.map(function (root, index) {
-                root.setOnUpdate(function (newRoot) {
-                    var oldTress = _this.state.trees;
-                    oldTress[index] = newRoot;
-                    _this.setState({
-                        trees: oldTress
-                    });
-                }).sendChunks(OC.generateUrl('/apps/uploaderdash/chunks')).then(function () {
+            Object.keys(_this.state.dumpRoot.children).map(function (key) {
+                var root = _this.state.dumpRoot.getChild(key);
+                root.setOnUpdate(_this.updateTree).sendChunks(OC.generateUrl('/apps/uploaderdash')).then(function () {
                     console.log('done');
                 }).catch(function (err) {
                     console.error(err);
@@ -1128,15 +1279,9 @@ var App = function (_Component) {
         };
 
         _this.sendUploadFileRequest = function () {
-            _this.state.trees.map(function (root, index) {
-                console.log(root);
-                root.setOnUpdate(function (newRoot) {
-                    var oldTress = _this.state.trees;
-                    oldTress[index] = newRoot;
-                    _this.setState({
-                        trees: oldTress
-                    });
-                }).sendFileInitRequest(OC.generateUrl('/apps/uploaderdash/files')).then(function () {
+            Object.keys(_this.state.dumpRoot.children).map(function (key) {
+                var root = _this.state.dumpRoot.getChild(key);
+                root.setOnUpdate(_this.updateTree).sendFileInitRequest(OC.generateUrl('/apps/uploaderdash/files')).then(function () {
                     console.log('done');
                     _this.sendChunks();
                 }).catch(function (err) {
@@ -1146,17 +1291,26 @@ var App = function (_Component) {
         };
 
         _this.onFiles = function (files) {
-            console.log(files);
-            console.log(files.length);
-            var trees = (0, _Files.convertToTrees)(files);
-            console.log(trees);
             _this.setState({
-                trees: trees
+                loading: false
+            });
+            // console.log(files);
+            console.log(files.length);
+            var dumpRoot = (0, _Files.convertToTrees)(files);
+            console.log(dumpRoot);
+            _this.setState({
+                dumpRoot: dumpRoot
             });
         };
 
         _this.onSubmitClick = function () {
             _this.sendUploadFileRequest();
+        };
+
+        _this.onUploadBtnClick = function () {
+            _this.setState({
+                loading: true
+            });
         };
 
         _this.render = function () {
@@ -1166,7 +1320,7 @@ var App = function (_Component) {
                 _react2.default.createElement(
                     'div',
                     { className: 'app-row' },
-                    _react2.default.createElement(_UploadButton2.default, { onFiles: _this.onFiles }),
+                    _react2.default.createElement(_UploadButton2.default, { onFiles: _this.onFiles, onClick: _this.onUploadBtnClick }),
                     _react2.default.createElement(
                         'a',
                         { className: 'button', onClick: _this.onSubmitClick },
@@ -1176,15 +1330,15 @@ var App = function (_Component) {
                 _react2.default.createElement(
                     'div',
                     { className: 'app-row flex-container' },
-                    _this.state.trees.map(function (tree) {
-                        return _react2.default.createElement(_FileTree2.default, { rootFolder: tree });
-                    })
-                )
+                    _react2.default.createElement(_Tree2.default, { root: _this.state.dumpRoot })
+                ),
+                _react2.default.createElement(_Loading2.default, { text: '加载中', show: _this.state.loading })
             );
         };
 
         _this.state = {
-            trees: []
+            dumpRoot: new _TreeNode2.default('root'),
+            loading: false
         };
         return _this;
     }
@@ -1195,15 +1349,15 @@ var App = function (_Component) {
 exports.default = App;
 
 /***/ }),
-/* 15 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 var utils = __webpack_require__(0);
-var bind = __webpack_require__(7);
-var Axios = __webpack_require__(17);
+var bind = __webpack_require__(6);
+var Axios = __webpack_require__(19);
 var defaults = __webpack_require__(3);
 
 /**
@@ -1237,15 +1391,15 @@ axios.create = function create(instanceConfig) {
 };
 
 // Expose Cancel & CancelToken
-axios.Cancel = __webpack_require__(11);
-axios.CancelToken = __webpack_require__(32);
-axios.isCancel = __webpack_require__(10);
+axios.Cancel = __webpack_require__(10);
+axios.CancelToken = __webpack_require__(34);
+axios.isCancel = __webpack_require__(9);
 
 // Expose all/spread
 axios.all = function all(promises) {
   return Promise.all(promises);
 };
-axios.spread = __webpack_require__(33);
+axios.spread = __webpack_require__(35);
 
 module.exports = axios;
 
@@ -1254,7 +1408,7 @@ module.exports.default = axios;
 
 
 /***/ }),
-/* 16 */
+/* 18 */
 /***/ (function(module, exports) {
 
 /*!
@@ -1281,7 +1435,7 @@ function isSlowBuffer (obj) {
 
 
 /***/ }),
-/* 17 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1289,8 +1443,8 @@ function isSlowBuffer (obj) {
 
 var defaults = __webpack_require__(3);
 var utils = __webpack_require__(0);
-var InterceptorManager = __webpack_require__(27);
-var dispatchRequest = __webpack_require__(28);
+var InterceptorManager = __webpack_require__(29);
+var dispatchRequest = __webpack_require__(30);
 
 /**
  * Create a new instance of Axios
@@ -1367,7 +1521,7 @@ module.exports = Axios;
 
 
 /***/ }),
-/* 18 */
+/* 20 */
 /***/ (function(module, exports) {
 
 // shim for using process in browser
@@ -1557,7 +1711,7 @@ process.umask = function() { return 0; };
 
 
 /***/ }),
-/* 19 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1576,13 +1730,13 @@ module.exports = function normalizeHeaderName(headers, normalizedName) {
 
 
 /***/ }),
-/* 20 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var createError = __webpack_require__(9);
+var createError = __webpack_require__(8);
 
 /**
  * Resolve or reject a Promise based on response status.
@@ -1609,7 +1763,7 @@ module.exports = function settle(resolve, reject, response) {
 
 
 /***/ }),
-/* 21 */
+/* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1637,7 +1791,7 @@ module.exports = function enhanceError(error, config, code, request, response) {
 
 
 /***/ }),
-/* 22 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1712,7 +1866,7 @@ module.exports = function buildURL(url, params, paramsSerializer) {
 
 
 /***/ }),
-/* 23 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1772,7 +1926,7 @@ module.exports = function parseHeaders(headers) {
 
 
 /***/ }),
-/* 24 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1847,7 +2001,7 @@ module.exports = (
 
 
 /***/ }),
-/* 25 */
+/* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1890,7 +2044,7 @@ module.exports = btoa;
 
 
 /***/ }),
-/* 26 */
+/* 28 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1950,7 +2104,7 @@ module.exports = (
 
 
 /***/ }),
-/* 27 */
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2009,18 +2163,18 @@ module.exports = InterceptorManager;
 
 
 /***/ }),
-/* 28 */
+/* 30 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 var utils = __webpack_require__(0);
-var transformData = __webpack_require__(29);
-var isCancel = __webpack_require__(10);
+var transformData = __webpack_require__(31);
+var isCancel = __webpack_require__(9);
 var defaults = __webpack_require__(3);
-var isAbsoluteURL = __webpack_require__(30);
-var combineURLs = __webpack_require__(31);
+var isAbsoluteURL = __webpack_require__(32);
+var combineURLs = __webpack_require__(33);
 
 /**
  * Throws a `Cancel` if cancellation has been requested.
@@ -2102,7 +2256,7 @@ module.exports = function dispatchRequest(config) {
 
 
 /***/ }),
-/* 29 */
+/* 31 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2129,7 +2283,7 @@ module.exports = function transformData(data, headers, fns) {
 
 
 /***/ }),
-/* 30 */
+/* 32 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2150,7 +2304,7 @@ module.exports = function isAbsoluteURL(url) {
 
 
 /***/ }),
-/* 31 */
+/* 33 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2171,13 +2325,13 @@ module.exports = function combineURLs(baseURL, relativeURL) {
 
 
 /***/ }),
-/* 32 */
+/* 34 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var Cancel = __webpack_require__(11);
+var Cancel = __webpack_require__(10);
 
 /**
  * A `CancelToken` is an object that can be used to request cancellation of an operation.
@@ -2235,7 +2389,7 @@ module.exports = CancelToken;
 
 
 /***/ }),
-/* 33 */
+/* 35 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2269,7 +2423,7 @@ module.exports = function spread(callback) {
 
 
 /***/ }),
-/* 34 */
+/* 36 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2303,22 +2457,28 @@ var UploadButton = function (_Component) {
 
         var _this = _possibleConstructorReturn(this, (UploadButton.__proto__ || Object.getPrototypeOf(UploadButton)).call(this, props));
 
-        _this.uploadFolderOnClick = function () {
+        _this.uploadFolderOnClick = function (event) {
             _this.setState({
-                uploadFolder: true
+                uploadFolder: true,
+                menuOpen: false
+            }, function () {
+                _this.folderUploader.click();
             });
-            _this.folderUploader.click();
+            _this.props.onClick(event);
         };
 
-        _this.uploadFileOnClick = function () {
+        _this.uploadFileOnClick = function (event) {
             _this.setState({
                 uploadFolder: false,
                 menuOpen: false
+            }, function () {
+                _this.fileUploader.click();
             });
-            _this.fileUploader.click();
+            _this.props.onClick(event);
         };
 
-        _this.handleFile = function () {
+        _this.handleFile = function (event) {
+            console.log(event);
             _this.setState({ menuOpen: false });
             var loader = _this.state.uploadFolder ? _this.folderUploader : _this.fileUploader;
             var files = Array.from(loader.files);
@@ -2421,7 +2581,7 @@ var UploadButton = function (_Component) {
 exports.default = UploadButton;
 
 /***/ }),
-/* 35 */
+/* 37 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2433,7 +2593,7 @@ Object.defineProperty(exports, "__esModule", {
 var FILE_CHUNK_SIZE = exports.FILE_CHUNK_SIZE = 1024 * 1024 * 20; // 20MB
 
 /***/ }),
-/* 36 */
+/* 38 */
 /***/ (function(module, exports, __webpack_require__) {
 
 (function (factory) {
@@ -3190,7 +3350,7 @@ var FILE_CHUNK_SIZE = exports.FILE_CHUNK_SIZE = 1024 * 1024 * 20; // 20MB
 
 
 /***/ }),
-/* 37 */
+/* 39 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3200,11 +3360,11 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _IFileNode2 = __webpack_require__(44);
+var _IFileNode2 = __webpack_require__(12);
 
 var _IFileNode3 = _interopRequireDefault(_IFileNode2);
 
-var _FileNode = __webpack_require__(6);
+var _FileNode = __webpack_require__(5);
 
 var _FileNode2 = _interopRequireDefault(_FileNode);
 
@@ -3224,18 +3384,13 @@ var FolderNode = function (_IFileNode) {
     _inherits(FolderNode, _IFileNode);
 
     function FolderNode(name) {
-        var collapsed = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
         _classCallCheck(this, FolderNode);
 
         var _this = _possibleConstructorReturn(this, (FolderNode.__proto__ || Object.getPrototypeOf(FolderNode)).call(this, name));
 
-        _this.collapse = function () {
-            _this.collapsed = true;
-        };
-
-        _this.open = function () {
-            _this.collapsed = false;
+        _this.childUpdate = function (newChild) {
+            _this.addChild(newChild.name, newChild);
+            if (typeof _this._onUpdate === 'function') _this._onUpdate(_this);
         };
 
         _this.sendFileInitRequest = function (url) {
@@ -3276,19 +3431,19 @@ var FolderNode = function (_IFileNode) {
             });
         };
 
-        _this.sendChunks = function (url) {
+        _this.sendChunks = function (baseUrl) {
+
             var filenames = Object.keys(_this.children);
             var promises = filenames.filter(_this.filterFileNode).map(function (filename) {
                 return _this.children[filename];
             }).reduce(function (list, file) {
-                var promise = file.sendChunks(url);
+                var promise = file.setOnUpdate(_this.childUpdate).sendChunks(baseUrl);
                 return list.concat([promise]);
             }, []);
 
             return Promise.all(promises);
         };
 
-        _this.collapsed = collapsed;
         return _this;
     }
 
@@ -3298,7 +3453,7 @@ var FolderNode = function (_IFileNode) {
 exports.default = FolderNode;
 
 /***/ }),
-/* 38 */
+/* 40 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3312,87 +3467,30 @@ var _react = __webpack_require__(1);
 
 var _react2 = _interopRequireDefault(_react);
 
-var _FileNode = __webpack_require__(6);
+var _FileNode = __webpack_require__(5);
 
 var _FileNode2 = _interopRequireDefault(_FileNode);
 
+var _Node = __webpack_require__(13);
+
+var _Node2 = _interopRequireDefault(_Node);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var getFileStatusIcon = function getFileStatusIcon(node) {
-  if (node instanceof _FileNode2.default) {
-    return !node.inited ? _react2.default.createElement('div', { className: 'icon icon-pause' }) : _react2.default.createElement('div', { className: 'icon icon-checkmark-color' });
-  } else {
-    return '';
-  }
-};
+var Tree = function Tree(_ref) {
+  var root = _ref.root;
 
-var FileTreeNode = function FileTreeNode(_ref) {
-  var node = _ref.node;
   return _react2.default.createElement(
-    'li',
-    null,
-    node.name,
-    getFileStatusIcon(node)
+    'ul',
+    { className: 'tree' },
+    _react2.default.createElement(_Node2.default, { nodes: root.children, level: 0 })
   );
 };
 
-var FolderTreeNode = function FolderTreeNode(_ref2) {
-  var node = _ref2.node;
-  return _react2.default.createElement(
-    'li',
-    { onClick: function onClick() {
-        console.log('on click');node.collapsed = true;
-      } },
-    _react2.default.createElement(
-      'div',
-      null,
-      _react2.default.createElement('div', { className: (node.collapsed ? 'folder-close' : '') + ' icon icon-caret-dark' }),
-      node.name
-    ),
-    node.collapsed ? '' : _react2.default.createElement(
-      'ul',
-      null,
-      _react2.default.createElement(Node, { nodes: node.children })
-    )
-  );
-};
-
-var Node = function Node(_ref3) {
-  var nodes = _ref3.nodes;
-  return Object.keys(nodes).map(function (key) {
-    var node = nodes[key];
-    return node.isLeaf() ? _react2.default.createElement(FileTreeNode, { node: node }) : _react2.default.createElement(FolderTreeNode, { node: node });
-  });
-};
-
-var FileTree = function FileTree(_ref4) {
-  var rootFolder = _ref4.rootFolder;
-  return rootFolder === undefined ? '' : _react2.default.createElement(
-    'div',
-    null,
-    _react2.default.createElement(
-      'div',
-      { className: 'tree-root' },
-      _react2.default.createElement('div', { className: 'icon icon-caret-dark' }),
-      rootFolder.name
-    ),
-    _react2.default.createElement(
-      'ul',
-      { className: 'tree' },
-      _react2.default.createElement(Node, { nodes: rootFolder.children })
-    )
-  );
-};
-
-exports.default = FileTree;
+exports.default = Tree;
 
 /***/ }),
-/* 39 */,
-/* 40 */,
-/* 41 */,
-/* 42 */,
-/* 43 */,
-/* 44 */
+/* 41 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3402,9 +3500,108 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _TreeNode2 = __webpack_require__(5);
+var _react = __webpack_require__(1);
 
-var _TreeNode3 = _interopRequireDefault(_TreeNode2);
+var _react2 = _interopRequireDefault(_react);
+
+var _Icons = __webpack_require__(43);
+
+var _Files = __webpack_require__(4);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var FileStatusIcon = function FileStatusIcon(_ref) {
+    var node = _ref.node;
+
+    var merging = node.inited && node.uploaded && !node.merged;
+    var finish = node.inited && node.uploaded && node.merged;
+    return _react2.default.createElement(
+        'div',
+        { className: 'tree-file-status-icon ' + (finish ? 'icon-checkmark-color' : '') },
+        merging ? _react2.default.createElement(
+            'div',
+            { style: { height: '100%', width: '16px' } },
+            _react2.default.createElement(_Icons.MergeIcon, null)
+        ) : ''
+    );
+};
+
+var FileIcon = function FileIcon(_ref2) {
+    var node = _ref2.node;
+
+    var Icon = (0, _Icons.getFileIcon)(node.file);
+    return _react2.default.createElement(
+        'div',
+        { className: 'tree-file-icon file-icon icon' },
+        _react2.default.createElement(Icon, null)
+    );
+};
+
+var FileSize = function FileSize(_ref3) {
+    var node = _ref3.node;
+    return _react2.default.createElement(
+        'div',
+        { className: 'tree-file-size' },
+        (0, _Files.getFileSize)(node.file)
+    );
+};
+
+var showProcess = function showProcess(node) {
+    return node.inited && !node.uploaded && !node.merged;
+};
+var FileNode = function FileNode(_ref4) {
+    var node = _ref4.node;
+    return _react2.default.createElement(
+        'li',
+        { className: 'node-desc' },
+        _react2.default.createElement(FileIcon, { node: node }),
+        _react2.default.createElement(
+            'div',
+            { className: 'tree-file-name' },
+            node.name
+        ),
+        _react2.default.createElement(
+            'div',
+            { className: 'tree-file-status' },
+            _react2.default.createElement(FileSize, { node: node }),
+            _react2.default.createElement(FileStatusIcon, { node: node }),
+            _react2.default.createElement(
+                'div',
+                { className: 'app-progress', hidden: !showProcess(node) },
+                _react2.default.createElement(
+                    'div',
+                    { className: 'progress-text', hidden: !showProcess(node) },
+                    node.uploadingPercentage,
+                    '%'
+                ),
+                _react2.default.createElement('progress', { hidden: !showProcess(node), value: node.uploadingPercentage, max: '100' })
+            )
+        )
+    );
+};
+
+exports.default = FileNode;
+
+/***/ }),
+/* 42 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+var _Icons = __webpack_require__(43);
+
+var _Node = __webpack_require__(13);
+
+var _Node2 = _interopRequireDefault(_Node);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -3414,42 +3611,599 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var IFileNode = function (_TreeNode) {
-    _inherits(IFileNode, _TreeNode);
+var FolderNode = function (_Component) {
+    _inherits(FolderNode, _Component);
 
-    function IFileNode(name) {
-        _classCallCheck(this, IFileNode);
+    function FolderNode(props) {
+        _classCallCheck(this, FolderNode);
 
-        var _this = _possibleConstructorReturn(this, (IFileNode.__proto__ || Object.getPrototypeOf(IFileNode)).call(this, name));
+        var _this = _possibleConstructorReturn(this, (FolderNode.__proto__ || Object.getPrototypeOf(FolderNode)).call(this, props));
 
-        _this.isFolder = function () {
-            return _this.isLeaf();
+        _this.onFolderClick = function () {
+            _this.setState({
+                collapsed: !_this.state.collapsed
+            });
         };
 
-        _this.filterFileNode = function (key) {
-            var child = _this.children[key];
-            return child.isLeaf();
+        _this.render = function () {
+            return _react2.default.createElement(
+                'li',
+                null,
+                _react2.default.createElement(
+                    'div',
+                    { onClick: _this.onFolderClick, className: 'node-desc' },
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'tree-file-icon file-icon icon' },
+                        (0, _Icons.getFolderIcon)(_this.state.collapsed)
+                    ),
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'tree-file-name' },
+                        _this.props.node.name
+                    ),
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'tree-file-status' },
+                        _this.props.node.getChildrenNum()
+                    )
+                ),
+                _this.state.collapsed ? '' : _react2.default.createElement(
+                    'ul',
+                    null,
+                    _react2.default.createElement(_Node2.default, { nodes: _this.props.node.children, level: _this.props.level + 1 })
+                )
+            );
         };
 
-        _this.filterFolderNode = function (key) {
-            var child = _this.children[key];
-            return !child.isLeaf();
+        _this.state = {
+            collapsed: true
         };
-
-        _this.setOnUpdate = function (cb) {
-            if (typeof cb === 'function') _this._onUpdate = cb;
-            return _this;
-        };
-
-        _this.inited = false;
-        _this._onUpdate = null;
         return _this;
     }
 
-    return IFileNode;
-}(_TreeNode3.default);
+    return FolderNode;
+}(_react.Component);
 
-exports.default = IFileNode;
+exports.default = FolderNode;
+
+/***/ }),
+/* 43 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.MergeIcon = exports.getFolderIcon = exports.getFileIcon = undefined;
+
+var _Folder = __webpack_require__(55);
+
+var _Folder2 = _interopRequireDefault(_Folder);
+
+var _FolderOpen = __webpack_require__(56);
+
+var _FolderOpen2 = _interopRequireDefault(_FolderOpen);
+
+var _File = __webpack_require__(57);
+
+var _File2 = _interopRequireDefault(_File);
+
+var _PDF = __webpack_require__(58);
+
+var _PDF2 = _interopRequireDefault(_PDF);
+
+var _PPT = __webpack_require__(59);
+
+var _PPT2 = _interopRequireDefault(_PPT);
+
+var _Image = __webpack_require__(60);
+
+var _Image2 = _interopRequireDefault(_Image);
+
+var _Video = __webpack_require__(61);
+
+var _Video2 = _interopRequireDefault(_Video);
+
+var _Music = __webpack_require__(62);
+
+var _Music2 = _interopRequireDefault(_Music);
+
+var _Excel = __webpack_require__(63);
+
+var _Excel2 = _interopRequireDefault(_Excel);
+
+var _Word = __webpack_require__(64);
+
+var _Word2 = _interopRequireDefault(_Word);
+
+var _Zip = __webpack_require__(65);
+
+var _Zip2 = _interopRequireDefault(_Zip);
+
+var _Merge = __webpack_require__(67);
+
+var _Merge2 = _interopRequireDefault(_Merge);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// PDF Icon
+var pdfRex = [/application\/pdf/];
+
+// PPT Icon
+var pptRex = [/application\/vnd.ms-powerpoint/, /application\/vnd.openxmlformats-officedocument.presentationml.presentation/];
+
+// Image Icon
+var imageRex = [/image\/*/];
+
+// Video Icon
+var videoRex = [/video\/*/];
+
+// Music Icon
+var musicRex = [/audio\/*/];
+
+// Excel Icon
+var excelRex = [/application\/vnd.ms-excel/, /application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet/];
+
+// Word Icon
+var wordRex = [/application\/msword/, /application\/vnd.openxmlformats-officedocument.wordprocessingml.document/];
+
+// ZIP Icon
+var zipRex = [/application\/x-gzip/, /application\/gzip/, /application\/x-7z-compressed/, /application\/x-tar/, /application\/zip/, /application\/x-zip-compressed/];
+
+
+var rexMatch = function rexMatch(str) {
+    var rexList = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+
+    return rexList.map(function (rex) {
+        return str.match(rex);
+    }).reduce(function (prev, curr) {
+        return prev || curr;
+    }, false);
+};
+
+var getFileIcon = exports.getFileIcon = function getFileIcon(file) {
+    var type = file.type;
+    if (rexMatch(type, pdfRex)) {
+        return _PDF2.default;
+    } else if (rexMatch(type, pptRex)) {
+        return _PPT2.default;
+    } else if (rexMatch(type, imageRex)) {
+        return _Image2.default;
+    } else if (rexMatch(type, videoRex)) {
+        return _Video2.default;
+    } else if (rexMatch(type, musicRex)) {
+        return _Music2.default;
+    } else if (rexMatch(type, excelRex)) {
+        return _Excel2.default;
+    } else if (rexMatch(type, wordRex)) {
+        return _Word2.default;
+    } else if (rexMatch(type, zipRex)) {
+        return _Word2.default;
+    } else {
+        return _File2.default;
+    }
+};
+
+var getFolderIcon = exports.getFolderIcon = function getFolderIcon(collapsed) {
+    return collapsed ? React.createElement(_Folder2.default, null) : React.createElement(_FolderOpen2.default, null);
+};
+var MergeIcon = exports.MergeIcon = _Merge2.default;
+
+/***/ }),
+/* 44 */,
+/* 45 */,
+/* 46 */,
+/* 47 */,
+/* 48 */,
+/* 49 */,
+/* 50 */,
+/* 51 */,
+/* 52 */,
+/* 53 */,
+/* 54 */,
+/* 55 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Folder = function Folder() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { d: "M977.6 238.4c-9.6-9.6-21.6-14.4-33.6-14.4H472L366.4 118.4c-4-4-9.6-8-15.2-10.4-6.4-2.4-12-4-18.4-4H80c-12 0-24.8 4.8-33.6 14.4S32 140 32 152v280h960V272c0-12-4.8-24.8-14.4-33.6z", fill: "#FFD766" }),
+    _react2.default.createElement("path", { d: "M944 912H80c-26.4 0-48-21.6-48-48V352h960v512c0 26.4-21.6 48-48 48z", fill: "#FFAC33" })
+  );
+};
+
+exports.default = Folder;
+
+/***/ }),
+/* 56 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var FolderOpen = function FolderOpen() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { d: "M841.6 238.4c-9.6-9.6-21.6-14.4-33.6-14.4H432L326.4 118.4c-4-4-9.6-8-15.2-10.4-6.4-2.4-12-4-18.4-4H80c-12 0-24.8 4.8-33.6 14.4S32 140 32 152v712c0 12 4.8 24.8 14.4 33.6S68 912 80 912h728c12 0 24.8-4.8 33.6-14.4 9.6-9.6 14.4-21.6 14.4-33.6V272c0-12-4.8-24.8-14.4-33.6z", fill: "#FFD766" }),
+    _react2.default.createElement("path", { d: "M858.4 877.6c-3.2 9.6-8.8 18.4-17.6 24.8-8.8 6.4-18.4 9.6-28.8 9.6H88.8c-14.4 0-28.8-6.4-38.4-19.2s-12-28.8-7.2-42.4l139.2-464c3.2-9.6 8.8-18.4 17.6-24.8 8.8-6.4 18.4-9.6 28.8-9.6h724c14.4 0 28.8 6.4 38.4 19.2 9.6 12.8 12 28.8 7.2 42.4l-140 464z", fill: "#FFAC33" })
+  );
+};
+
+exports.default = FolderOpen;
+
+/***/ }),
+/* 57 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var File = function File() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { fill: "#333333", d: "M679.814 62.381H128.692v897.177h768.434V255.079L679.814 62.381zM203.758 890.606V131.333h414.026v188.205H822.06v571.068H203.758z" }),
+    _react2.default.createElement("path", { fill: "#333333", d: "M293.825 417.364H746.64v67.229H293.825zM293.825 577.709H746.64v67.229H293.825zM293.825 738.054H746.64v67.229H293.825z" })
+  );
+};
+
+exports.default = File;
+
+/***/ }),
+/* 58 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var PDF = function PDF() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { d: "M292.887 806.826H586.15V408.445h-68.687v329.436H292.887z", fill: "#DE5934" }),
+    _react2.default.createElement("path", { d: "M728.345 63.14H224.056v252.205h68.687v-183.26h378.844V320.27h186.917v571.008H292.743V679.252h-68.687v280.971h703.135V255.819z", fill: "#819292" }),
+    _react2.default.createElement("path", { d: "M660.276 418.086h129.217v67.221H660.276zM660.276 578.414h129.217v67.221H660.276zM660.276 738.742h129.217v67.221H660.276z", fill: "#819292" }),
+    _react2.default.createElement("path", { d: "M153.415 615.473c-0.071 0.868-0.191 2.319 3.378 4.31 1.85 1.032 3.838 1.533 6.079 1.533 15.83 0 40.741-23.869 63.986-60.169-44.866 19.745-72.561 43.601-73.443 54.326z", fill: "#DE5934" }),
+    _react2.default.createElement("path", { d: "M460.55 679.252V315.345H98.004v363.908H460.55z m-297.678-40.7c-5.163 0-10.015-1.246-14.419-3.702-11.532-6.432-12.563-15.789-12.151-20.794 2.166-26.339 53.854-58.453 104.834-77.227 13.764-25.553 24.693-52.454 31.088-76.504-12.704-18.632-22.722-35.513-29.066-48.992-8.791-18.678-10.874-31.236-6.555-39.518 1.741-3.338 6.166-8.937 16.249-8.937 2.853 0 5.944 0.434 9.449 1.328 11.783 3.003 26.864 11.759 31.802 36.421 3.003 14.994 1.881 33.92-3.331 56.301 14.28 20.406 31.117 42.029 47.932 61.552 38.823 1.538 65.211 17.411 76.433 46.054l0.218 0.557 0.139 0.582c2.753 11.489 2.225 18.85-1.712 23.868-2.57 3.276-6.405 5.082-10.799 5.084h-0.013c-5.375 0-14.008-2.177-33.201-19.101-11.241-9.913-24.665-23.669-38.967-39.924-22.839 0.226-49.629 5.489-77.775 15.272-13.471 23.998-52.774 87.68-90.155 87.68z", fill: "#DE5934" }),
+    _react2.default.createElement("path", { d: "M399.969 576.394c-0.118-1.42-0.407-3.402-1.031-6.105-6.997-17.321-21.427-28.222-43.023-32.557 23.996 25.761 37.925 35.748 44.054 38.662zM316.391 519.054l-0.843-0.968 0.322 0.004a829 829 0 0 1-30.537-39.219l-0.082 0.328-0.467-0.675c-5.15 16.154-11.97 33.114-20.043 49.84l0.824-0.295-0.493 0.897c15.32-4.419 33.101-8.361 51.319-9.912zM258.075 380.911c-2.076-0.529-3.834-0.797-5.224-0.797-0.526 0-0.897 0.04-1.143 0.082-0.307 1.494-0.686 7.583 7.124 24.088 4.357 9.208 10.593 20.192 18.342 32.345 3.422-23.549 2.201-50.289-19.099-55.718z", fill: "#DE5934" }),
+    _react2.default.createElement("path", { d: "M330.803 535.599c14.302 16.256 27.726 30.012 38.967 39.924 19.193 16.924 27.826 19.101 33.201 19.101h0.013c4.394-0.003 8.228-1.809 10.799-5.084 3.937-5.019 4.465-12.379 1.712-23.868l-0.139-0.582-0.218-0.557c-11.222-28.643-37.61-44.516-76.433-46.054-16.815-19.524-33.652-41.146-47.932-61.552 5.212-22.381 6.334-41.307 3.331-56.301-4.938-24.661-20.02-33.418-31.802-36.421-3.505-0.893-6.596-1.328-9.449-1.328-10.083 0-14.508 5.599-16.249 8.937-4.318 8.282-2.236 20.84 6.555 39.518 6.344 13.479 16.362 30.361 29.066 48.992-6.395 24.049-17.324 50.95-31.088 76.504-50.98 18.774-102.668 50.888-104.834 77.227-0.412 5.005 0.62 14.362 12.151 20.794 4.405 2.457 9.256 3.702 14.419 3.702 37.381 0 76.684-63.682 90.157-87.681 28.145-9.782 54.934-15.045 77.773-15.271z m68.134 34.69c0.624 2.703 0.913 4.685 1.031 6.105-6.129-2.914-20.057-12.901-44.055-38.662 21.597 4.335 36.028 15.236 43.024 32.557z m-236.065 51.026c-2.241 0-4.23-0.501-6.079-1.533-3.569-1.99-3.449-3.442-3.378-4.31 0.882-10.725 28.577-34.581 73.443-54.326-23.245 36.3-48.156 60.169-63.986 60.169z m95.96-217.031c-7.81-16.505-7.431-22.594-7.124-24.088a6.741 6.741 0 0 1 1.143-0.082c1.39 0 3.147 0.268 5.224 0.797 21.301 5.429 22.521 32.169 19.099 55.718-7.749-12.153-13.985-23.137-18.342-32.345z m5.91 124.08c8.072-16.726 14.893-33.686 20.043-49.84l0.467 0.675 0.082-0.328a830.025 830.025 0 0 0 30.537 39.219l-0.322-0.004 0.843 0.968c-18.219 1.551-35.999 5.492-51.319 9.913l0.493-0.897-0.824 0.294z", fill: "#FFFFFF" })
+  );
+};
+
+exports.default = PDF;
+
+/***/ }),
+/* 59 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var PPT = function PPT() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { d: "M292.921 805.631h293.314v-397.16h-68.698v328.426H292.921z", fill: "#BD3C20" }),
+    _react2.default.createElement("path", { d: "M728.455 64.223H224.078v251.432h68.699V132.957h378.91v187.609h186.951v569.259H292.777V678.449h-68.699v280.11h703.259V256.311z", fill: "#819292" }),
+    _react2.default.createElement("path", { d: "M660.375 418.082h129.24v67.016h-129.24zM660.375 577.919h129.24v67.016h-129.24zM660.375 737.756h129.24v67.016h-129.24z", fill: "#819292" }),
+    _react2.default.createElement("path", { d: "M225.642 428.656h114.832v53.005H225.642z", fill: "#BD3C20" }),
+    _react2.default.createElement("path", { d: "M460.614 678.449V315.655H98.004v362.794h362.61zM220.823 541.803v83.383h-60.447V368.512h60.447v0.002h128.654c28.181 0 51.108 24.427 51.108 54.452v64.386c0 30.025-22.927 54.452-51.108 54.452H220.823z", fill: "#BD3C20" }),
+    _react2.default.createElement("path", { d: "M349.477 541.803c28.181 0 51.108-24.427 51.108-54.452v-64.386c0-30.025-22.927-54.452-51.108-54.452H220.823v-0.002h-60.447v256.674h60.447v-83.383h128.654zM225.642 428.656h114.832v53.005H225.642v-53.005z", fill: "#FFFFFF" })
+  );
+};
+
+exports.default = PPT;
+
+/***/ }),
+/* 60 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Image = function Image() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { d: "M160 32c-12 0-24.8 4.8-33.6 14.4S112 68 112 80v864c0 12 4.8 24.8 14.4 33.6 9.6 9.6 21.6 14.4 33.6 14.4h704c12 0 24.8-4.8 33.6-14.4 9.6-9.6 14.4-21.6 14.4-33.6V304L640 32H160z", fill: "#FF5562" }),
+    _react2.default.createElement("path", { d: "M912 304H688c-12 0-24.8-4.8-33.6-14.4-9.6-8.8-14.4-21.6-14.4-33.6V32l272 272z", fill: "#FFBBC0" }),
+    _react2.default.createElement("path", { d: "M758.4 705.6L658.4 550.4c-3.2-4.8-8-7.2-13.6-7.2s-10.4 3.2-13.6 7.2l-53.6 83.2-120-194.4c-3.2-4.8-8-7.2-13.6-7.2s-10.4 3.2-13.6 7.2L265.6 705.6c-3.2 4.8-3.2 11.2 0 16 3.2 5.6 8 8 13.6 8h465.6c5.6 0 11.2-3.2 14.4-8 2.4-5.6 2.4-12-0.8-16z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M662.4 412m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" })
+  );
+};
+
+exports.default = Image;
+
+/***/ }),
+/* 61 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Video = function Video() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { d: "M80 34.4h864v960H80z", fill: "#8095FF" }),
+    _react2.default.createElement("path", { d: "M176 112m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M176 272m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M176 432m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M176 592m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M176 752m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M176 912m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M864 112m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M864 272m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M864 432m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M864 592m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M864 752m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M864 912m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z", fill: "#FFFFFF" }),
+    _react2.default.createElement("path", { d: "M648 508L436 362.4c-4.8-3.2-11.2-4-16.8-0.8-5.6 3.2-8.8 8.8-8.8 14.4v290.4c0 5.6 3.2 11.2 8.8 14.4 5.6 3.2 12 2.4 16.8-0.8L648 533.6c4.8-2.4 7.2-8 7.2-12.8 0-4.8-3.2-9.6-7.2-12.8z", fill: "#FFFFFF" })
+  );
+};
+
+exports.default = Video;
+
+/***/ }),
+/* 62 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Music = function Music() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { d: "M160 32c-12 0-24.8 4.8-33.6 14.4S112 68 112 80v864c0 12 4.8 24.8 14.4 33.6 9.6 9.6 21.6 14.4 33.6 14.4h704c12 0 24.8-4.8 33.6-14.4 9.6-9.6 14.4-21.6 14.4-33.6V304L640 32H160z", fill: "#FF5562" }),
+    _react2.default.createElement("path", { d: "M912 304H688c-12 0-24.8-4.8-33.6-14.4-9.6-8.8-14.4-21.6-14.4-33.6V32l272 272z", fill: "#FFBBC0" }),
+    _react2.default.createElement("path", { d: "M669.6 491.2c0-1.6 0.8-4 0-6.4V369.6c0-4.8-2.4-8.8-5.6-12-4-3.2-8-4-12.8-3.2l-250.4 70.4c-7.2 1.6-12 7.2-12 14.4v275.2c-9.6-4-20.8-6.4-32.8-6.4-8.8 0-17.6 0.8-26.4 3.2-40.8 11.2-66.4 43.2-58.4 72.8 6.4 23.2 30.4 37.6 60.8 37.6 8.8 0 17.6-1.6 26.4-3.2 36.8-10.4 60.8-36.8 60-63.2 0.8-1.6 0.8-3.2 0.8-5.6V570.4l220-61.6v136c-9.6-4-20.8-6.4-32.8-6.4-8.8 0-17.6 0.8-26.4 3.2-40.8 11.2-66.4 43.2-58.4 72.8 6.4 23.2 30.4 37.6 60.8 37.6 8.8 0 17.6-0.8 26.4-3.2 36-9.6 60-36 60-62.4 0.8-1.6 0.8-3.2 0.8-5.6V491.2z m-250.4 48v-53.6L639.2 424v53.6l-220 61.6z", fill: "#FFFFFF" })
+  );
+};
+
+exports.default = Music;
+
+/***/ }),
+/* 63 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Excel = function Excel() {
+    return _react2.default.createElement(
+        "svg",
+        { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+        _react2.default.createElement("path", { d: "M728.345 64.223H224.056V321.34h68.687V133.019h378.844v187.78h186.917v569.777H292.743v-84.271h-0.715v-68.796h0.715v-53.046h-68.687v274.909h703.135V256.486z", fill: "#819292" }),
+        _react2.default.createElement("path", { d: "M660.276 418.403h129.217v67.077H660.276zM660.276 578.386h129.217v67.077H660.276zM660.276 738.369h129.217v67.077H660.276z", fill: "#819292" }),
+        _react2.default.createElement("path", { d: "M586.15 408.784h-68.687v328.725H292.028v68.796H586.15z", fill: "#50A135" }),
+        _react2.default.createElement("path", { d: "M460.55 684.463V321.34H98.004v363.123H460.55z m-234.043-70.305l-85.787 0.722 93.843-110.912-93.843-113.045 81.805 0.225 53.747 63.523 53.747-63.523 81.805-0.225-93.843 113.044 93.843 110.912-85.787-0.722-49.765-59.948-49.765 59.949z", fill: "#50A135" }),
+        _react2.default.createElement("path", { d: "M326.038 614.158l85.787 0.722-93.843-110.913 93.843-113.044-81.805 0.225-53.747 63.524-53.748-63.524-81.805-0.225 93.844 113.044L140.72 614.88l85.787-0.722 49.766-59.948z", fill: "#FFFFFF" })
+    );
+};
+
+exports.default = Excel;
+
+/***/ }),
+/* 64 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Word = function Word() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { d: "M727.949 64.223H223.977v250.866h68.644V132.802h378.605v187.187h186.801v567.978H292.621V677.066h-68.644v279.48H926.67V255.879z", fill: "#819292" }),
+    _react2.default.createElement("path", { d: "M659.923 417.285h129.136v66.865H659.923zM659.923 576.763h129.136v66.865H659.923zM659.923 736.24h129.136v66.865H659.923z", fill: "#819292" }),
+    _react2.default.createElement("path", { d: "M292.765 803.962h293.078V407.696h-68.644v327.687H292.765z", fill: "#287CB0" }),
+    _react2.default.createElement("path", { d: "M460.322 677.066V315.089H98.004v361.977h362.318z m-239.598-53.143l-0.335-0.335v0.741h-60.063V367.827h60.063v159.446l58.178-58.123 0.254 0.254 1.112-1.111 58.005 57.95V367.827h60.063v255.644h-60.063v-0.568l-0.162 0.162-58.097-58.042-58.955 58.9z", fill: "#287CB0" }),
+    _react2.default.createElement("path", { d: "M337.775 623.065l0.163-0.162v0.568h60.063V367.827h-60.063v158.416l-58.005-57.951-1.112 1.112-0.255-0.254-58.177 58.122V367.827h-60.063v256.501h60.063v-0.74l0.335 0.335 58.955-58.899z", fill: "#FFFFFF" })
+  );
+};
+
+exports.default = Word;
+
+/***/ }),
+/* 65 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Zip = function Zip() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { fill: "#333333", d: "M64.301 167.661v676.771h895.032V167.661H64.301z m70.641 76.259h288.575v101.565h-60.059v22.347H134.942V243.92z m0 200.172h228.516v123.911H134.942V444.092z m0 200.17h228.516v27.093h60.059v96.818H134.942V644.262z m753.751 123.912H600.118v-96.818h60.059v-27.093h228.516v123.911z m0-200.171H660.177V444.092h228.516v123.911z m0-200.171H660.177v-22.347h-60.059V243.92h288.575v123.912z" })
+  );
+};
+
+exports.default = Zip;
+
+/***/ }),
+/* 66 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Loading = function Loading(_ref) {
+    var show = _ref.show,
+        text = _ref.text;
+    return _react2.default.createElement(
+        "div",
+        { className: "loading-mask", hidden: !show },
+        _react2.default.createElement(
+            "div",
+            { className: "center-loading" },
+            _react2.default.createElement("div", { className: "loading icon icon-loading" }),
+            _react2.default.createElement(
+                "div",
+                { className: "center-loading-text" },
+                text
+            )
+        )
+    );
+};
+
+exports.default = Loading;
+
+/***/ }),
+/* 67 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(1);
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Merge = function Merge() {
+  return _react2.default.createElement(
+    "svg",
+    { height: "100%", width: "100%", viewBox: "0 0 1024 1024", version: "1.1", xmlns: "http://www.w3.org/2000/svg" },
+    _react2.default.createElement("path", { fill: "#515151", d: "M832.984615 866.461538c-110.276923-53.169231-189.046154-147.692308-228.430769-256-15.753846-39.384615-25.6-84.676923-29.538461-124.061538v-68.923077H787.692308c15.753846 0 27.569231-17.723077 15.753846-35.446154l-279.630769-334.769231c-9.846154-11.815385-31.507692-11.815385-39.384616 0l-271.753846 334.769231c-9.846154 11.815385 0 35.446154 15.753846 35.446154h214.646154v68.923077c-5.907692 41.353846-15.753846 86.646154-29.538461 124.061538-39.384615 108.307692-118.153846 202.830769-228.43077 256-15.753846 5.907692-21.661538 25.6-15.753846 39.384616l25.6 61.046154c7.876923 15.753846 25.6 21.661538 41.353846 11.815384 118.153846-57.107692 212.676923-147.692308 269.784616-256 59.076923 108.307692 151.630769 198.892308 271.753846 256 15.753846 7.876923 35.446154 5.907692 41.353846-11.815384l25.6-61.046154c11.815385-13.784615 3.938462-31.507692-11.815385-39.384616z" })
+  );
+};
+
+exports.default = Merge;
 
 /***/ })
 /******/ ]);

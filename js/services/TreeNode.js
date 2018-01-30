@@ -29,6 +29,10 @@ class TreeNode {
         return this.children[name];
     }
 
+    getChildrenNum = () => {
+        return Object.keys(this.children).length;
+    }
+
     isLeaf = () => {
         return Object.keys(this.children).length === 0;
     }
