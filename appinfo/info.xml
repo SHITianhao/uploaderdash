@@ -12,7 +12,7 @@
     <category>files</category>
     <bugs>https://www.tshi.tech</bugs>
     <dependencies>
-        <nextcloud min-version="12" max-version="12"/>
+        <nextcloud min-version="12" max-version="13"/>
     </dependencies>
     <navigations>
         <navigation>

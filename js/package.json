@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "webpack --watch --config ./webpack.config.dev.js"
+    "start": "webpack --watch --config ./webpack.config.dev.js",
+    "prod": "webpack --config ./webpack.config.prod.js"
   },
   "author": "tshi",
   "license": "ISC",

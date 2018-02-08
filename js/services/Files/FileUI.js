@@ -159,15 +159,13 @@ export const updateFile = (root, path, value) => {
  * @param {[File]} files 
  */
 export const createFolderStructure = (files) => {
-    return new Promise((resolve, reject) => {
-        let root = createFolder('root');
-        for (var i = 0; i < files.length; i++) {
-            const file = files[i];
-            const path = file.webkitRelativePath;
-            root = addFile(root, path, createFile(file))
-        }
-        resolve(root);
-    })
+    let root = createFolder('root');
+    for (var i = 0; i < files.length; i++) {
+        const file = files[i];
+        const path = file.webkitRelativePath;
+        root = addFile(root, path, createFile(file))
+    }
+    return root;
 }
 
 /**
