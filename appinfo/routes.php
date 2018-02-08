@@ -14,5 +14,6 @@ return [
        ['name' => 'upload_api#create_files', 'url' => '/files', 'verb' => 'POST'],
        ['name' => 'upload_api#create_chunk', 'url' => '/chunks', 'verb' => 'POST'],
        ['name' => 'upload_api#merge_chunks', 'url' => '/merge', 'verb' => 'POST'],
+       ['name' => 'file_system_api#listSubDir', 'url' => '/subdirs', 'verb' => 'GET'],
     ]
 ];

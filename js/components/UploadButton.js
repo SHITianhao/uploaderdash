@@ -11,6 +11,7 @@ class UploadButton extends Component {
             uploadFolder: false,
             menuOpen: false
         }
+        this.domRef = null;
     }
 
     componentDidMount() {
@@ -54,24 +55,44 @@ class UploadButton extends Component {
     }
 
     openMenu = () => {
-        this.setState({ menuOpen: true })
+        document.addEventListener('click', this.handleOutsideClick, false);
+        this.setState({ menuOpen: true });
+    }
+
+    closeMenu = () => {
+        document.removeEventListener('click', this.handleOutsideClick, false);
+        this.setState({ menuOpen: false });
+    }
+
+    handleOutsideClick = (e) => {
+        // ignore clicks on the component itself
+        if (this.domRef.contains(e.target)) {
+          return;
+        }
+        this.closeMenu();
+    }
+
+    handleBlur = () => {
+        console.log('handleBlur');
     }
 
     render = () => (
-        <div style={{display: 'inline-block'}}>
+        <div style={{display: 'inline-block'}}  ref={e => {this.domRef = e;}} >
             <input 
                 ref={(input) => {this.fileUploader = input;}} 
                 type="file" 
+                onBlur={this.handleBlur}
                 onChange={this.handleFile} 
                 style={{display: 'none'}} />
             <input 
                 ref={(input) => {this.folderUploader = input;}} 
-                type="file" 
-                onChange={this.handleFile} 
+                type="file"
+                onBlur={this.handleBlur}
+                onChange={this.handleFile}
                 style={{display: 'none'}} />
             <a className="button" onClick={this.openMenu}>
                 <span className="icon-upload"></span> 选择上传
-                <div className={`popovermenu menu menu-left ${this.state.menuOpen?'open':''}`}>
+                <div className={`popovermenu menu menu-left ${this.state.menuOpen?'open':''}`} style={{left: '48px'}}>
                     <ul>
                         <li>
                             <button className="menuitem" onClick={this.uploadFileOnClick}>

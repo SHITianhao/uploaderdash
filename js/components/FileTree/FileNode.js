@@ -3,8 +3,8 @@ import { getFileIcon, MergeIcon } from '@Icons';
 import { getFileSize } from '@Services/Files';
 
 const FileStatusIcon = ({node}) => {
-    const merging = node.inited && node.uploaded && !node.merged;
-    const finish = node.inited && node.uploaded && node.merged;
+    const merging = node.get('inited') && node.get('uploaded') && !node.get('merged'); 
+    const finish = node.get('inited') && node.get('uploaded') && node.get('merged'); 
     return (
         <div className={`tree-file-status-icon ${finish?'icon-checkmark-color':''}`}>
             {merging?<div style={{height: '100%', width: '16px'}}><MergeIcon /></div>: ''}
@@ -13,7 +13,7 @@ const FileStatusIcon = ({node}) => {
 }
 
 const FileIcon = ({node}) => {
-    const Icon = getFileIcon(node.file);
+    const Icon = getFileIcon(node.get('file'));
     return (
         <div className='tree-file-icon file-icon icon'>
             <Icon />
@@ -22,24 +22,29 @@ const FileIcon = ({node}) => {
 }
 
 const FileSize = ({node}) => (
-    <div className='tree-file-size'>{getFileSize(node.file)}</div>
+    <div className='tree-file-size'>{getFileSize(node.get('file'))}</div>
 )
 
 const showProcess = (node) => {
-    return node.inited && !node.uploaded && !node.merged;
+    return node.get('inited') && !node.get('uploaded') && !node.get('merged'); 
 }
+
+const getUploadedPercentage = (node) => {
+    return Math.ceil(node.get('uploadedChunks')/node.get('totalChunk') * 100).toFixed(1); 
+}
+
 const FileNode = ({node}) => (
     <li className='node-desc'>
         <FileIcon node={node}/>
         <div className='tree-file-name'>
-            {node.name}
+            {node.get('filename')}
         </div>
         <div className='tree-file-status'>
             <FileSize node={node}/>
             <FileStatusIcon node={node}/>
             <div className='app-progress' hidden={!showProcess(node)}>
-                <div className='progress-text' hidden={!showProcess(node)}>{node.uploadingPercentage}%</div>
-                <progress hidden={!showProcess(node)} value={node.uploadingPercentage} max="100"></progress>
+                <div className='progress-text' hidden={!showProcess(node)}>{getUploadedPercentage(node)}%</div>
+                <progress hidden={!showProcess(node)} value={getUploadedPercentage(node)} max="100"></progress>
             </div>
         </div>
     </li>

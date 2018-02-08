@@ -40,22 +40,44 @@ class UploadApiController extends ApiController {
     /**
      * @NoCSRFRequired
      * 
+     * @param string $rootPath
      * @param array $files
      */
-	public function createFiles($files) {
+	public function createFiles($rootPath, $files) {
         $resp = array();
         foreach ($files as $fileInfo) {
-            
-            $file = new FileEntity();
-            $file->setUserId($this->userId);
-            $file->setFilename($fileInfo['filename']);
-            $file->setFileMd5($fileInfo['md5']);
-            $file->setTotalChunk($fileInfo['totalChunk']);
-            $file->setRelativePath($fileInfo['relativePath']);
-            $file->setFileSize($fileInfo['fileSize']);
-            $file->setCompleted(false);
-            $data = $this->fileMapper->insert($file);
-            array_push($resp, $data);
+            $existFiles = $this->fileMapper->findByMD5AndRootPath($fileInfo['md5'], $rootPath, $this->userId);
+            if(count($existFiles) != 0) {
+                $existFile = $existFiles[0];
+                if($existFile->getCompleted()) {
+                    $this->storage->checkFileExist($existFile->getFileId());
+                    $existFiles = null;
+                }
+            }
+            if(count($existFiles) != 0) {
+                // TODO: Same uploaded file but different path;
+                $existFile = $existFiles[0];
+                $uploadedChunks = $this->chunkMapper->findAll($existFile->getId());
+                if($uploadedChunks == null) $uploadedChunks = [];
+                $existFile->setUploadedChunks($uploadedChunks);
+                array_push($resp, $existFile);
+            } else {
+                $file = new FileEntity();
+                $file->setUserId($this->userId);
+                $file->setFilename($fileInfo['filename']);
+                $file->setFileMd5($fileInfo['md5']);
+                $file->setTotalChunk($fileInfo['totalChunk']);
+                $file->setFileSize($fileInfo['fileSize']);
+                $file->setCompleted(false);
+                $file->setRootPath($rootPath);
+                $path = $fileInfo['relativePath'];
+                if(empty($fileInfo['relativePath'])) {
+                    $path = $fileInfo['filename'];
+                }
+                $file->setRelativePath($path);
+                $data = $this->fileMapper->insert($file);
+                array_push($resp, $data);
+            }
         }
         
         return new DataResponse($resp);
@@ -95,10 +117,16 @@ class UploadApiController extends ApiController {
         $file = $this->fileMapper->find($fileId, $this->userId);
         $fileMD5 = $file->getFileMd5();
         $totalChunk = $file->getTotalChunk();
-        $targetPath = $file->getRelativePath();
-        $resp = $this->storage->mergeChunks($fileMD5, $totalChunk, $targetPath);
-        $this->storage-> cleanChunks($fileMD5);
-        return new DataResponse($resp);
+        $targetPath = $file->getRootPath() . '/' . $file->getRelativePath();
+        $fileId = $file->getFileId();
+        $fileSize = $file->getFileSize();
+
+        $targetFile = $this->storage->mergeChunks($fileMD5, $fileSize, $totalChunk, $targetPath);
+        $file->setFileId($targetFile->getId());
+        $file->setCompleted(true);
+        
+        $this->storage->cleanChunks($fileMD5);
+        return new DataResponse($this->fileMapper->update($file));
     }
 
 }

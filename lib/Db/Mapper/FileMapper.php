@@ -17,9 +17,14 @@ class FileMapper extends Mapper {
         return $this->findEntity($sql, [$id, $userId]);
     }
 
-    public function findAll($userId) {
-        $sql = 'SELECT * FROM `*PREFIX*'.self::$db_name.'` WHERE user_id = ?';
-        return $this->findEntities($sql, [$userId]);
+    public function findByMD5AndRootPath($fileMD5, $rootPath, $userId) {
+        $sql = 'SELECT * FROM `*PREFIX*'.self::$db_name.'` WHERE file_md5 = ? AND user_id = ? AND root_path = ?';
+        return $this->findEntities($sql, [$fileMD5, $userId, $rootPath]);
     }
+
+    // public function updateComplete($id) {
+    //     $sql = 'UPDATE `*PREFIX*'.self::$db_name.'` SET completed = ? WHERE id = ?';
+    //     return $this->update($sql, [true, $id]);
+    // }
 
 }

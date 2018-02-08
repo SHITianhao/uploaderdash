@@ -13,12 +13,12 @@ class ChunkMapper extends Mapper {
     }
 
     public function find($id, $fileId) {
-        $sql = 'SELECT * FROM *PREFIX*'+self::$db_name+' WHERE id = ? AND file_id = ?';
+        $sql = 'SELECT * FROM `*PREFIX*'.self::$db_name.'` WHERE id = ? AND file_id = ?';
         return $this->findEntity($sql, [$id, $fileId]);
     }
 
     public function findAll($fileId) {
-        $sql = 'SELECT * FROM *PREFIX*'+self::$db_name+' WHERE file_id = ?';
+        $sql = 'SELECT * FROM `*PREFIX*'.self::$db_name.'` WHERE file_id = ?';
         return $this->findEntities($sql, [$fileId]);
     }
 

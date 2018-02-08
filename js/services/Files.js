@@ -1,8 +1,5 @@
 import { FILE_CHUNK_SIZE } from '@Constants';
 import SparkMD5 from 'spark-md5';
-import TreeNode from './TreeNode';
-import FileNode from './FileNode';
-import FolderNode from './FolderNode';
 
 const blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
 
@@ -12,6 +9,7 @@ export const getFileMD5 = (file) => {
     spark.append(file.name);
     spark.append(file.size);
     spark.append(file.type);
+    spark.append(file.webkitRelativePath);
     return spark.end();
 }
 
@@ -45,9 +43,6 @@ export const readChunks = (file, onChunkLoaded) => {
         }
         fileReader.onload = (event) => {
             // calculat chunk MD5
-            console.log('file onload')
-            loadChunkIndex++;
-            allChunkLoaded = loadChunkIndex >= totalChunk;
             const buffer = event.target.result;
             const spark = new SparkMD5.ArrayBuffer();
             spark.append(buffer);
@@ -57,43 +52,15 @@ export const readChunks = (file, onChunkLoaded) => {
                 data: loadedChunk,
                 index: loadChunkIndex,
                 md5
+            }).then(() => {
+                loadChunkIndex++;
+                allChunkLoaded = loadChunkIndex >= totalChunk;
+                readNextChunk();
             })
-            readNextChunk();
         }
     
         readNextChunk();
     })
-}
-
-
-export const convertToTrees = (files) => {
-    let dump = new TreeNode('root');
-
-    for (var i = 0; i < files.length; i++) {
-        const file = files[i];
-        const path = file.webkitRelativePath;
-        let pathList = path.split('/');
-        let parentNode = dump;
-        let nodeName = pathList.shift();
-        if(nodeName == '') nodeName = file.name;
-        while(nodeName != undefined) {
-            const nextNode = pathList.shift();
-            if(nextNode == undefined) {
-                const fileNode = new FileNode(file);
-                parentNode.addChild(nodeName, fileNode);
-            } else {
-                if(parentNode.hasChild(nodeName)) {
-                    parentNode = parentNode.getChild(nodeName);
-                } else {
-                    const folderNode = new FolderNode(nodeName);
-                    parentNode.addChild(nodeName, folderNode);
-                    parentNode = folderNode;
-                }
-            }
-            nodeName = nextNode;
-        }
-    }
-    return dump;
 }
 
 export const getFileSize = (file) => {

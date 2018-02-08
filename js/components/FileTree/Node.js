@@ -4,10 +4,9 @@ import FileNode from './FileNode';
 import FolderNode from './FolderNode';
 
 const Node = ({nodes, level}) => (
-    Object.keys(nodes).map((key, index) => {
-      const node = nodes[key];
-      return node.isLeaf() ? <FileNode node={node} key={`${level}-${index}`}/>: <FolderNode node={node} level={level} key={`${level}-${index}`}/>
-    })
+  nodes.valueSeq().map((node, key) => {
+    return node.get('type') === 'file' ? <FileNode node={node} key={`${level}-${key}`}/>: <FolderNode node={node} level={level} key={`${level}-${key}`}/>
+  }).toArray()
 )
 
 export default Node;

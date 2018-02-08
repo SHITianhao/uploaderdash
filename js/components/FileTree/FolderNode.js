@@ -3,6 +3,8 @@ import { getFolderIcon } from '@Icons';
 
 import Node from './Node';
 
+import { calculateFolderTotalFile } from '@Services/Files/FileUI';
+
 class FolderNode extends Component{
     constructor(props) {
         super(props);
@@ -19,15 +21,15 @@ class FolderNode extends Component{
 
 
     render = () => (
-        <li>
+        <li className={`${this.props.level == 0 ? 'no-left-padding': ''}`}>
             <div onClick={this.onFolderClick} className='node-desc'>
                 <div className="tree-file-icon file-icon icon">{getFolderIcon(this.state.collapsed)}</div>
-                <div className='tree-file-name'>{this.props.node.name}</div>
-                <div className='tree-file-status'>{this.props.node.getChildrenNum()}</div>
+                <div className='tree-file-name'>{this.props.node.get('filename')}</div>
+                <div className='tree-file-status'>{calculateFolderTotalFile(this.props.node)} 个文件</div>
             </div>
             {this.state.collapsed? '' :
                 <ul>
-                    <Node nodes={this.props.node.children} level={this.props.level+1}/>
+                    <Node nodes={this.props.node.get('children')} level={this.props.level+1}/>
                 </ul>
             }
         </li>

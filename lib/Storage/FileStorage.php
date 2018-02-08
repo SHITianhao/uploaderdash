@@ -1,12 +1,16 @@
 <?php
 namespace OCA\UploaderDash\Storage;
 
+use OC\Files\Filesystem;
+use OC\Files\Cache\HomeCache;
+
+use OCP\IContainer;
 use OCP\Files\IAppData;
 use OCP\Files\IRootFolder;
 use OCP\Files\NotFoundException;
+
+use OCP\Lock\LockedException;
 use OCA\UploaderDash\Exception\MD5NotMatchException;
-use OCP\IContainer;
-use OC\Files\Filesystem;
 
 class FileStorage {
 
@@ -43,13 +47,21 @@ class FileStorage {
             try {
                 $fileFolder = $this->appData->getFolder($fileMD5);
             } catch (NotFoundException $e) {
-                $fileFolder = $this->appData->newFolder($fileMD5);
+                try {
+                    $fileFolder = $this->appData->newFolder($fileMD5);
+                } catch (LockedException $e) {
+                    $fileFolder = $this->appData->getFolder($fileMD5);
+                }
             }
 
             try {
                 $chunkFile = $fileFolder->getFile($chunkIndex);
             } catch (NotFoundException $e) {
-                $chunkFile = $fileFolder->newFile($chunkIndex);
+                try {
+                    $chunkFile = $fileFolder->newFile($chunkIndex);
+                } catch (LockedException $e) {
+                    $chunkFile = $fileFolder->getFile($chunkIndex);
+                }
             }
 
             $chunkFile->putContent($content);
@@ -58,28 +70,38 @@ class FileStorage {
         }
     }
 
-    private function createFile($userFolder, $targetPath) {
+    private function newFile($folder, $fileName) {
+        $success = false;
+        while ($success === false) {
+            try {
+                $file = $folder->newFile($fileName);
+                $success = true;
+            } catch (LockedException $e) {
+                // try again
+            }
+        }
+        return $file;
+    }
+
+    public function createFile($userFolder, $targetPath) {
+        // get user root folder
         $folder = $userFolder;
         $paths = explode('/', $targetPath);
         $len = count($paths);
         $file = null;
-        for ($i = 0; $i < $len; $i++) {
+        for ($i = 0; $i < $len - 1; $i++) {
             $path = $paths[$i];
-            if($i < $len - 1) {
+            try {
+                $folder = $folder->get($path);
+            } catch (NotFoundException $e) {
                 try {
-                    $folder = $folder->get($path);
-                } catch (NotFoundException $e) {
                     $folder = $folder->newFolder($path);
-                }
-            } else {
-                try {
-                    $file = $folder->get($path);
-                } catch (NotFoundException $e) {
-                    $file = $folder->newFile($path);
+                } catch (LockedException $e) {
+                    $folder = $folder->get($path);
                 }
             }
         }
-        return $file;
+        return $this->newFile($folder, $paths[$len-1]);
     }
 
     public function cleanChunks($fileMD5) {
@@ -87,19 +109,55 @@ class FileStorage {
         $fileFolder->delete();
     }
 
-    public function mergeChunks($fileMD5, $totalChunk, $targetPath) {
-
+    public function mergeChunks($fileMD5, $fileSize, $totalChunk, $targetPath) {
         $userFolder = $this->rootFolder->getUserFolder($this->currentUser);
+        // TODO: check array
         $targetFile = $this->createFile($userFolder, $targetPath);
-        $fileStream = $targetFile->fopen('w+');
         $fileFolder = $this->appData->getFolder($fileMD5);
 
+        $fileStream = $targetFile->fopen('wb');
+        ftruncate($fileStream, 0);
+		rewind($fileStream);
         for ($i = 0; $i < $totalChunk; $i++) {
             $chunkFile = $fileFolder->getFile($i);
             $content = $chunkFile->getContent();
             fwrite($fileStream, $content);
+            fflush($fileStream);
         }
+		flock($fileStream, LOCK_UN);
         fclose($fileStream);
-        return $targetFile->getETag();
+        // Update file cache
+        Filesystem::touch($targetPath);
+        return $targetFile;
     }
+
+    public function listSubDir($absolutPath) {
+        $userFolder = $this->rootFolder->getUserFolder($this->currentUser);
+        $result = array();
+        try {
+            $folder = $userFolder;
+            $paths = explode('/', $absolutPath);
+            $len = count($paths);
+            for ($i = 1; $i <= $len - 1; $i++) {
+                $path = $paths[$i];
+                $folder = $folder->get($path);
+            }
+            $nodes = $folder->getDirectoryListing();
+            for ($i = 0; $i < count($nodes); $i++) {
+                $node = $nodes[$i];
+                if($node instanceof \OCP\Files\Folder) {
+                    array_push($result, $node->getName());
+                }
+            }
+            return $result;
+        } catch (NotFoundException $e) {
+            return array(); 
+        }
+    }
+
+    public function checkFileExist($fileId) {
+        $userFolder = $this->rootFolder->getUserFolder($this->currentUser);
+        return $userFolder->getById($fileId) == null;
+    }
+
 }

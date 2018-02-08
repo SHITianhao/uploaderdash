@@ -76,6 +76,10 @@
    position:relative;
  }
 
+ .tree .no-left-padding {
+   padding-left: 0;
+ }
+
  .tree li .icon{
    display: inline-block;
    margin-right: 8px;
