@@ -47,21 +47,13 @@ class FileStorage {
             try {
                 $fileFolder = $this->appData->getFolder($fileMD5);
             } catch (NotFoundException $e) {
-                try {
-                    $fileFolder = $this->appData->newFolder($fileMD5);
-                } catch (LockedException $e) {
-                    $fileFolder = $this->appData->getFolder($fileMD5);
-                }
+                $fileFolder = $this->newFolder($this->appData, $fileMD5);
             }
 
             try {
                 $chunkFile = $fileFolder->getFile($chunkIndex);
             } catch (NotFoundException $e) {
-                try {
-                    $chunkFile = $fileFolder->newFile($chunkIndex);
-                } catch (LockedException $e) {
-                    $chunkFile = $fileFolder->getFile($chunkIndex);
-                }
+                $chunkFile =  $this->newFile($fileFolder, $chunkIndex);
             }
 
             $chunkFile->putContent($content);
@@ -81,6 +73,19 @@ class FileStorage {
             }
         }
         return $file;
+    }
+
+    private function newFolder($folder, $folderName) {
+        $success = false;
+        while ($success === false) {
+            try {
+                $folder = $folder->newFolder($folderName);
+                $success = true;
+            } catch (LockedException $e) {
+                // try again
+            }
+        }
+        return $folder;
     }
 
     public function createFile($userFolder, $targetPath) {

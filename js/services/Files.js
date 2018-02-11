@@ -51,7 +51,8 @@ export const readChunks = (file, onChunkLoaded) => {
             onChunkLoaded({
                 data: loadedChunk,
                 index: loadChunkIndex,
-                md5
+                md5,
+                totalChunk
             }).then(() => {
                 loadChunkIndex++;
                 allChunkLoaded = loadChunkIndex >= totalChunk;

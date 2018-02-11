@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { getFileIcon, MergeIcon } from '@Icons';
+import { getFileIcon, Icon } from '@Icons';
 import { getFileSize } from '@Services/Files';
 
 const FileStatusIcon = ({node}) => {
@@ -7,16 +7,15 @@ const FileStatusIcon = ({node}) => {
     const finish = node.get('inited') && node.get('uploaded') && node.get('merged'); 
     return (
         <div className={`tree-file-status-icon ${finish?'icon-checkmark-color':''}`}>
-            {merging?<div style={{height: '100%', width: '16px'}}><MergeIcon /></div>: ''}
+            {merging?<div style={{height: '100%', width: '16px'}}><Icon name={'merge'} /></div>: ''}
         </div>
     )
 }
 
 const FileIcon = ({node}) => {
-    const Icon = getFileIcon(node.get('file'));
     return (
         <div className='tree-file-icon file-icon icon'>
-            <Icon />
+            <Icon name={getFileIcon(node.get('file'))}/>
         </div>
     )
 }

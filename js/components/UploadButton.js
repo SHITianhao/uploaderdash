@@ -14,7 +14,7 @@ class UploadButton extends Component {
         this.domRef = null;
     }
 
-    componentDidMount() {
+    componentDidMount = () => {
         // folder uploader
         this.folderUploader.directory = true;
         this.folderUploader.webkitdirectory = true;
@@ -25,14 +25,19 @@ class UploadButton extends Component {
         this.fileUploader.multiple = true;
     }
 
+    componentWillUnmount = () => {
+    }
+
     uploadFolderOnClick = (event) => {
         this.setState({
             uploadFolder: true,
             menuOpen: false
         }, () => {
+            this.folderUploader.value = null;
             this.folderUploader.click();
         });
         this.props.onClick(event);
+        return false;
     }
 
     
@@ -41,17 +46,18 @@ class UploadButton extends Component {
             uploadFolder: false,
             menuOpen: false
         }, () => {
+            this.fileUploader.value = null;
             this.fileUploader.click();
         });
         this.props.onClick(event);
     }
 
     handleFile = (event) => {
-        console.log(event)
-        this.setState({ menuOpen: false })
+        this.setState({ menuOpen: false });
         const loader = this.state.uploadFolder? this.folderUploader: this.fileUploader;
         const files = Array.from(loader.files);
         this.props.onFiles(files);
+        return false;
     }
 
     openMenu = () => {
@@ -72,22 +78,16 @@ class UploadButton extends Component {
         this.closeMenu();
     }
 
-    handleBlur = () => {
-        console.log('handleBlur');
-    }
-
     render = () => (
         <div style={{display: 'inline-block'}}  ref={e => {this.domRef = e;}} >
             <input 
                 ref={(input) => {this.fileUploader = input;}} 
                 type="file" 
-                onBlur={this.handleBlur}
-                onChange={this.handleFile} 
+                onChange={this.handleFile}
                 style={{display: 'none'}} />
             <input 
                 ref={(input) => {this.folderUploader = input;}} 
                 type="file"
-                onBlur={this.handleBlur}
                 onChange={this.handleFile}
                 style={{display: 'none'}} />
             <a className="button" onClick={this.openMenu}>

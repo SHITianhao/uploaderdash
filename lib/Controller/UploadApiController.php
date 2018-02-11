@@ -38,7 +38,6 @@ class UploadApiController extends ApiController {
 
 
     /**
-     * @NoCSRFRequired
      * 
      * @param string $rootPath
      * @param array $files
@@ -84,7 +83,6 @@ class UploadApiController extends ApiController {
     }
 
     /**
-     * @NoCSRFRequired
      * 
      * @param int $fileId
      * @param string $fileMD5
@@ -109,7 +107,6 @@ class UploadApiController extends ApiController {
     }
 
     /**
-     * @NoCSRFRequired
      * 
      * @param int $fileId
      */

@@ -39,6 +39,7 @@ module.exports = {
             '@Constants': path.resolve(__dirname, 'constants'),
             '@Services': path.resolve(__dirname, 'services'),
             '@Icons': path.resolve(__dirname, 'icons'),
+            '@Errors': path.resolve(__dirname, 'errors'),
         }
     },
 

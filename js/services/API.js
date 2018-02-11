@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { Map, List } from 'immutable';
 import { readChunks } from '@Services/Files';
+import ChunkUploadingError from '@Errors/ChunkUploadingError';
+import FileInitError from '@Errors/FileInitError';
+import MergeError from '@Errors/MergeError';
 /**
  * Send init file request
  * 
@@ -14,12 +17,19 @@ export const sendFileInitRequest = (url, rootPath, list, handler) => {
     let index = 0;
     const next = () => {
         if(index < list.length) {
-            return axios.post(url, {files: list[index], rootPath})
+            return axios.post(url, {files: list[index], rootPath}, {
+                headers: {
+                    'requesttoken': oc_requesttoken
+                }
+            })
             .then(resp => {
                 index++;
                 return {data: resp.data, next};
             })
-            .then(handler);
+            .then(handler)
+            .catch(err => {
+                throw new FileInitError(index, err.response);
+            });
         } else {
             return Promise.resolve();
         }
@@ -38,11 +48,12 @@ const sendFileChunks = (url, node, chunkHandler) => {
     if(node.get('merged')) {
         return Promise.resolve({merged: true});
     }
-    return readChunks(node.get('file'), ({ data, index, md5 }, allChunkLoaded) => {
+    return readChunks(node.get('file'), ({ data, index, md5, totalChunk }) => {
+        const isLastChunk = index == totalChunk -1;
         let promise;
         if(node.get('skipChunks').includes(md5)) {
             console.log('uploaded chunk')
-            promise = Promise.resolve({skiped: true, node, finished: allChunkLoaded, chunkIndex: index});
+            promise = Promise.resolve({skiped: true, node, finished: isLastChunk, chunkIndex: index});
         } else {
             const form = new FormData();
             form.append('data', data);
@@ -53,10 +64,13 @@ const sendFileChunks = (url, node, chunkHandler) => {
             promise = axios.post(`${url}/chunks`, form, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
+                    'requesttoken': oc_requesttoken
                 }
             }).then(resp => {
-                return {data: resp.data, node, skiped: false, finished: allChunkLoaded, chunkIndex: index};
-            })
+                return {data: resp.data, node, skiped: false, finished: isLastChunk, chunkIndex: index};
+            }).catch(err => {
+                throw new ChunkUploadingError(node, chunkIndex, err.response);
+            });
         }
         return promise.then(chunkHandler)
     }).then(() => {
@@ -97,8 +111,13 @@ export const sendFolderChunks = (baseUrl, folder, chunkHandler, fileHandler) => 
         return sendFileChunks(baseUrl, file, chunkHandler)
         .then(({merged}) => {
             if(!merged) {
-                return axios.post(`${baseUrl}/merge`, {fileId: file.get('fileId')})
+                return axios.post(`${baseUrl}/merge`, {fileId: file.get('fileId')},  {
+                    headers: {
+                        'requesttoken': oc_requesttoken
+                    }
+                })
                 .then(resp => ({data: resp.data, skiped: false}))
+                .catch(err => { throw new MergeError(file, err.response); })
             } else {
                 return Promise.resolve({data: null, skiped: true}); 
             }

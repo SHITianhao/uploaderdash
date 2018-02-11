@@ -157,10 +157,11 @@ export const updateFile = (root, path, value) => {
  * Create folder structure by list of files
  * 
  * @param {[File]} files 
+ * @returns {Map}
  */
 export const createFolderStructure = (files) => {
     let root = createFolder('root');
-    for (var i = 0; i < files.length; i++) {
+    for(let i = 0; i < files.length; i++) {
         const file = files[i];
         const path = file.webkitRelativePath;
         root = addFile(root, path, createFile(file))

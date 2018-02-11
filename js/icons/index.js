@@ -1,36 +1,27 @@
-import FolderIcon from './Folder';
-import FolderOpenIcon from './FolderOpen';
-import FileIcon from './File';
+import {APP_NAME} from '@Constants'
 // PDF Icon
 const pdfRex = [/application\/pdf/];
-import PDFIcon from './PDF';
 // PPT Icon
 const pptRex = [
     /application\/vnd.ms-powerpoint/, 
     /application\/vnd.openxmlformats-officedocument.presentationml.presentation/
 ];
-import PPTIcon from './PPT';
 // Image Icon
 const imageRex = [/image\/*/];
-import ImageIcon from './Image';
 // Video Icon
 const videoRex = [/video\/*/];
-import VideoIcon from './Video';
 // Music Icon
 const musicRex = [/audio\/*/];
-import MusicIcon from './Music';
 // Excel Icon
 const excelRex = [
     /application\/vnd.ms-excel/,
     /application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet/
 ];
-import ExcelIcon from './Excel';
 // Word Icon
 const wordRex = [
     /application\/msword/,
     /application\/vnd.openxmlformats-officedocument.wordprocessingml.document/
 ];
-import WordIcon from './Word';
 // ZIP Icon
 const zipRex = [
     /application\/x-gzip/,
@@ -40,7 +31,6 @@ const zipRex = [
     /application\/zip/,
     /application\/x-zip-compressed/
 ];
-import ZipIcon from './Zip';
 
 const rexMatch = (str, rexList=[]) => {
     return rexList.map(rex => {
@@ -50,31 +40,40 @@ const rexMatch = (str, rexList=[]) => {
     }, false)
 }
 
+export const Icon = ({name}) => (
+    <img 
+        preserveAspectRatio="xMinYMin meet" 
+        src={`${OC.imagePath(APP_NAME, name)}`}
+        className="icon" />
+)
+
+/**
+ * 
+ * @param {File} file 
+ */
 export const getFileIcon = (file) => {
     const type = file.type;
     if (rexMatch(type, pdfRex)) {
-        return PDFIcon;
+        return 'pdf';
     } else if (rexMatch(type, pptRex)) {
-        return PPTIcon;
+        return 'ppt';
     } else if (rexMatch(type, imageRex)) {
-        return ImageIcon;
+        return 'image';
     } else if (rexMatch(type, videoRex)) {
-        return VideoIcon;
+        return 'video';
     } else if (rexMatch(type, musicRex)) {
-        return MusicIcon;
+        return 'music';
     } else if (rexMatch(type, excelRex)) {
-        return ExcelIcon;
+        return 'excel';
     } else if (rexMatch(type, wordRex)) {
-        return WordIcon;
+        return 'word';
     } else if (rexMatch(type, zipRex)) {
-        return WordIcon;
+        return 'zip';
     } else {
-        return FileIcon;
+        return 'file';
     }
 }
 
 export const getFolderIcon = (collapsed) => (
-    collapsed ? <FolderIcon /> : <FolderOpenIcon />
+    collapsed ? <Icon name={'folder'}/> : <Icon name={'folder_open'}/>
 )
-import Merge from './Merge';
-export const MergeIcon = Merge;
