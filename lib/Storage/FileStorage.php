@@ -162,7 +162,7 @@ class FileStorage {
 
     public function checkFileExist($fileId) {
         $userFolder = $this->rootFolder->getUserFolder($this->currentUser);
-        return $userFolder->getById($fileId) == null;
+        return count($userFolder->getById($fileId)) != 0;
     }
 
 }
