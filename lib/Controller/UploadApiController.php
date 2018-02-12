@@ -49,8 +49,10 @@ class UploadApiController extends ApiController {
             if(count($existFiles) != 0) {
                 $existFile = $existFiles[0];
                 if($existFile->getCompleted()) {
-                    $this->storage->checkFileExist($existFile->getFileId());
-                    $existFiles = null;
+                    $exist = $this->storage->checkFileExist($existFile->getFileId());
+                    if(!$exist) {
+                        $existFiles = null;
+                    }
                 }
             }
             if(count($existFiles) != 0) {
@@ -76,7 +78,7 @@ class UploadApiController extends ApiController {
                 $file->setRelativePath($path);
                 $data = $this->fileMapper->insert($file);
                 array_push($resp, $data);
-            }
+            } 
         }
         
         return new DataResponse($resp);
