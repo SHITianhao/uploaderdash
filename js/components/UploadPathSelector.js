@@ -18,7 +18,11 @@ class UploadPathSelector extends Component {
     }
 
     fetchFolderList = (path) => {
-        axios.get(`${this.props.baseUrl}/subdirs?path=${path}`)
+        axios.get(`${this.props.baseUrl}/subdirs?path=${path}`, {
+            headers: {
+                'requesttoken': oc_requesttoken
+            }
+        })
         .then(resp => {
             this.setState({
                 folders: resp.data

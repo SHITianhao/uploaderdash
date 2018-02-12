@@ -41,9 +41,9 @@ const FileNode = ({node}) => (
         <div className='tree-file-status'>
             <FileSize node={node}/>
             <FileStatusIcon node={node}/>
-            <div className='app-progress' hidden={!showProcess(node)}>
-                <div className='progress-text' hidden={!showProcess(node)}>{getUploadedPercentage(node)}%</div>
-                <progress hidden={!showProcess(node)} value={getUploadedPercentage(node)} max="100"></progress>
+            <div className={`app-progress ${showProcess(node)? '' : 'hidden'}`}>
+                <div className='progress-text'>{getUploadedPercentage(node)}%</div>
+                <progress value={getUploadedPercentage(node)} max="100"></progress>
             </div>
         </div>
     </li>

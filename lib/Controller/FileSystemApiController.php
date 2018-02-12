@@ -22,7 +22,6 @@ class FileSystemApiController extends ApiController {
     }
 
     /**
-     * @NoCSRFRequired
      * 
      * @param string $path
      */
