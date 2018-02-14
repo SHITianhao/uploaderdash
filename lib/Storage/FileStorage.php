@@ -99,7 +99,7 @@ class FileStorage {
             try {
                 $folder = $folder->get($path);
             } catch (NotFoundException $e) {
-                $this->newFolder($folder, $path)
+                $this->newFolder($folder, $path);
             }
         }
         return $this->newFile($folder, $paths[$len-1]);
