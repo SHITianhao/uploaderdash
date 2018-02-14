@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import FolderPath from '@Components/FolderPath'
-import axios from 'axios';
+import { GET } from '@Services/HTTP';
 
 class UploadPathSelector extends Component {
 
@@ -12,17 +12,13 @@ class UploadPathSelector extends Component {
             selectedFolder: -1
         }
     }
-
+    
     componentDidMount = () => {
         this.fetchFolderList(this.state.path);
     }
 
     fetchFolderList = (path) => {
-        axios.get(`${this.props.baseUrl}/subdirs?path=${path}`, {
-            headers: {
-                'requesttoken': oc_requesttoken
-            }
-        })
+        GET(`${this.props.baseUrl}/subdirs?path=${path}`)
         .then(resp => {
             this.setState({
                 folders: resp.data

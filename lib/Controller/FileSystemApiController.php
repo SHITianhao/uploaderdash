@@ -22,7 +22,7 @@ class FileSystemApiController extends ApiController {
     }
 
     /**
-     * 
+     * @NoAdminRequired
      * @param string $path
      */
 	public function listSubDir($path) {

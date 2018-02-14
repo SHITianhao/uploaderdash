@@ -14,6 +14,8 @@ import ChunkUploadingError from '@Errors/ChunkUploadingError';
 import FileInitError from '@Errors/FileInitError';
 import MergeError from '@Errors/MergeError';
 
+import { POST } from '@Services/HTTP';
+
 class App extends Component {
 
     constructor(props) {
@@ -30,6 +32,15 @@ class App extends Component {
             errors: []
         }
         this.baseUrl = OC.generateUrl('/apps/uploaderdash');
+    }
+
+
+    componentDidMount = () => {
+        this.testErrorPost()
+    }
+
+    testErrorPost = () => {
+        POST( `${this.baseUrl}/ddd`).then(value => console.log(value))
     }
 
     fileInitCallback =  ({data, next}) => {

@@ -38,7 +38,7 @@ class UploadApiController extends ApiController {
 
 
     /**
-     * 
+     * @NoAdminRequired
      * @param string $rootPath
      * @param array $files
      */
@@ -85,7 +85,7 @@ class UploadApiController extends ApiController {
     }
 
     /**
-     * 
+     * @NoAdminRequired
      * @param int $fileId
      * @param string $fileMD5
      * @param string $chunkMD5
@@ -109,7 +109,7 @@ class UploadApiController extends ApiController {
     }
 
     /**
-     * 
+     * @NoAdminRequired
      * @param int $fileId
      */
 	public function mergeChunks($fileId) {

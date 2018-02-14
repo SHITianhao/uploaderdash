@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { POST } from '@Services/HTTP';
 import { Map, List } from 'immutable';
 import { readChunks } from '@Services/Files';
 import ChunkUploadingError from '@Errors/ChunkUploadingError';
@@ -17,11 +17,7 @@ export const sendFileInitRequest = (url, rootPath, list, handler) => {
     let index = 0;
     const next = () => {
         if(index < list.length) {
-            return axios.post(url, {files: list[index], rootPath}, {
-                headers: {
-                    'requesttoken': oc_requesttoken
-                }
-            })
+            return POST(url, {files: list[index], rootPath})
             .then(resp => {
                 index++;
                 return {data: resp.data, next};
@@ -61,12 +57,8 @@ const sendFileChunks = (url, node, chunkHandler) => {
             form.append('fileMD5', node.get('md5'));
             form.append('chunkIndex', index);
             form.append('chunkMD5', md5);
-            promise = axios.post(`${url}/chunks`, form, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'requesttoken': oc_requesttoken
-                }
-            }).then(resp => {
+            promise = POST(`${url}/chunks`, form, 'multipart/form-data')
+            .then(resp => {
                 return {data: resp.data, node, skiped: false, finished: isLastChunk, chunkIndex: index};
             }).catch(err => {
                 throw new ChunkUploadingError(node, chunkIndex, err.response);
@@ -111,11 +103,7 @@ export const sendFolderChunks = (baseUrl, folder, chunkHandler, fileHandler) => 
         return sendFileChunks(baseUrl, file, chunkHandler)
         .then(({merged}) => {
             if(!merged) {
-                return axios.post(`${baseUrl}/merge`, {fileId: file.get('fileId')},  {
-                    headers: {
-                        'requesttoken': oc_requesttoken
-                    }
-                })
+                return POST(`${baseUrl}/merge`, {fileId: file.get('fileId')})
                 .then(resp => ({data: resp.data, skiped: false}))
                 .catch(err => { throw new MergeError(file, err.response); })
             } else {
