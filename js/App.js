@@ -24,6 +24,7 @@ class App extends Component {
             dumpRoot: createFolder('root'),
             loading: false,
             loadingText: '加载中',
+            loadingCancelable: true,
             files: [],
             totalChunks: 0,
             uploadedChunks: 0,
@@ -32,15 +33,6 @@ class App extends Component {
             errors: []
         }
         this.baseUrl = OC.generateUrl('/apps/uploaderdash');
-    }
-
-
-    componentDidMount = () => {
-        this.testErrorPost()
-    }
-
-    testErrorPost = () => {
-        POST( `${this.baseUrl}/ddd`).then(value => console.log(value))
     }
 
     fileInitCallback =  ({data, next}) => {
@@ -142,7 +134,8 @@ class App extends Component {
 
     onFiles = (files) => {
         this.setState({
-            loadingText: `加载${files.length}个文件`
+            loadingText: `加载${files.length}个文件`,
+            loadingCancelable: false
         })
         console.log(files.length);
         // Avoid UI blocking
@@ -151,12 +144,21 @@ class App extends Component {
             const totalChunks = calculateFolderTotalChunk(dumpRoot);
             this.setState({
                 loadingText: '加载中',
+                loadingCancelable: true,
                 loading: false,
                 totalChunks,
                 dumpRoot,
                 files
             }) 
         }, 0);
+    }
+
+    requestCancelLoading = () => {
+        this.setState({
+            loadingText: '加载中',
+            loadingCancelable: true,
+            loading: false,
+        }) 
     }
 
     onSubmitClick = () => {
@@ -227,7 +229,11 @@ class App extends Component {
                     onSelected={this.onUploadPathChange}
                     onRequestClose={this.onUploadPathModalClose}/>
             </Modal>
-            <Loading text={this.state.loadingText} show={this.state.loading} />
+            <Loading 
+                text={this.state.loadingText} 
+                show={this.state.loading} 
+                cancelable={this.state.loadingCancelable}
+                requestCancel={this.requestCancelLoading}/>
         </div>
     )
 }

@@ -5,7 +5,7 @@ const blobSlice = File.prototype.slice || File.prototype.mozSlice || File.protot
 
 export const getFileMD5 = (file) => {
     const spark = new SparkMD5();
-    spark.append(file.lastModified);
+    spark.append(file.lastModifiedDate.toGMTString());
     spark.append(file.name);
     spark.append(file.size);
     spark.append(file.type);
